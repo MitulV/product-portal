@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->timestamps();
-        });
+        // Categories table removed
+
 
         Schema::create('products', function (Blueprint $table) {
             $table->id();
@@ -47,7 +43,8 @@ return new class extends Migration
             $table->text('tech_spec')->nullable();
             // Retain category_id if still useful, otherwise remove. User didn't specify categories in new list but they are often useful.
             // Keeping it for now as a nullable foreign key.
-            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
+            // category_id removed
+
             $table->timestamps();
         });
     }
@@ -58,6 +55,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('products');
-        Schema::dropIfExists('categories');
+        // Categories table drop removed
+
     }
 };

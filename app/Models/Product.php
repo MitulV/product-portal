@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 
 class Product extends Model
 {
@@ -33,7 +33,7 @@ class Product extends Model
         'unit_id',
         'notes',
         'tech_spec',
-        'category_id',
+
     ];
 
     protected $casts = [
@@ -44,8 +44,5 @@ class Product extends Model
         'tariff_cost' => 'decimal:2',
     ];
 
-    public function category(): BelongsTo
-    {
-        return $this->belongsTo(Category::class);
-    }
+
 }
