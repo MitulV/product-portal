@@ -23,10 +23,12 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        // Filament panel disabled - using Inertia.js for admin interface
+        // If you need Filament, change the path to something like 'filament' or 'admin-panel'
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
+            ->path('filament') // Changed from 'admin' to avoid conflict with Inertia admin routes
             ->login()
             ->colors([
                 'primary' => Color::Amber,
