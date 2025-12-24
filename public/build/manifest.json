@@ -1,11 +1,13 @@
 {
-  "resources/js/app.jsx": {
-    "file": "assets/app-BcB-Aq8c.js",
+  "resources/css/app.css": {
+    "file": "assets/app-B3TARGmy.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-OANExTJh.js",
     "name": "app",
-    "src": "resources/js/app.jsx",
-    "isEntry": true,
-    "css": [
-      "assets/app-D3nVgeNt.css"
-    ]
+    "src": "resources/js/app.js",
+    "isEntry": true
   }
 }

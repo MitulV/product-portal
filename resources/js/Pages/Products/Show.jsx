@@ -169,12 +169,6 @@ export default function Show({ product }) {
                                             <span className="ml-2 font-medium text-slate-900">{product.hold_branch}</span>
                                         </div>
                                     )}
-                                    {product.sales_order_number && (
-                                        <div>
-                                            <span className="text-slate-500">Sales Order #:</span>
-                                            <span className="ml-2 font-medium text-slate-900">{product.sales_order_number}</span>
-                                        </div>
-                                    )}
                                     {product.enclosure && (
                                         <div>
                                             <span className="text-slate-500">Enclosure:</span>
@@ -199,13 +193,6 @@ export default function Show({ product }) {
                                     <div className="mt-4">
                                         <div className="text-slate-500 text-sm mb-1">Notes</div>
                                         <div className="text-slate-900 whitespace-pre-wrap">{product.notes}</div>
-                                    </div>
-                                )}
-
-                                {product.tech_spec && (
-                                    <div className="mt-4">
-                                        <div className="text-slate-500 text-sm mb-1">Technical Specifications</div>
-                                        <div className="text-slate-900 whitespace-pre-wrap">{product.tech_spec}</div>
                                     </div>
                                 )}
                             </div>

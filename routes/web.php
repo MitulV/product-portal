@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [\App\Http\Controllers\ProductController::class, 'index'])->name('home');
 Route::get('/products', [\App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product}', [\App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
-Route::post('/products/{product}/inquiry', [\App\Http\Controllers\ProductController::class, 'submitInquiry'])->name('products.inquiry');
+Route::get('/products/{product}/inquiry', [\App\Http\Controllers\ProductController::class, 'inquiry'])->name('products.inquiry');
+Route::post('/products/{product}/inquiry', [\App\Http\Controllers\ProductController::class, 'submitInquiry'])->name('products.inquiry.submit');
 
 Route::redirect('/admin', '/admin/dashboard');
 
@@ -21,11 +22,15 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::get('/dashboard', function () {
         $totalProducts = \App\Models\Product::count();
-        return inertia('Admin/Dashboard', [
+        return view('admin.dashboard', [
             'totalProducts' => $totalProducts
         ]);
     })->name('dashboard');
 
     Route::post('/products/import', [\App\Http\Controllers\AdminProductController::class, 'import'])->name('products.import');
     Route::resource('products', \App\Http\Controllers\AdminProductController::class)->except(['create', 'store']);
+    
+    Route::get('/gallery', [\App\Http\Controllers\AdminGalleryController::class, 'index'])->name('gallery.index');
+    Route::post('/gallery', [\App\Http\Controllers\AdminGalleryController::class, 'store'])->name('gallery.store');
+    Route::delete('/gallery/{id}', [\App\Http\Controllers\AdminGalleryController::class, 'destroy'])->name('gallery.destroy');
 });

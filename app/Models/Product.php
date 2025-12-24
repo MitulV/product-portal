@@ -44,5 +44,8 @@ class Product extends Model
         'tariff_cost' => 'decimal:2',
     ];
 
-
+    public function galleries()
+    {
+        return $this->hasMany(ProductGallery::class);
+    }
 }

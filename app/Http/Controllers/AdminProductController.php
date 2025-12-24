@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 use App\Imports\ProductsImport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -14,27 +14,68 @@ class AdminProductController extends Controller
   public function import(Request $request)
   {
     try {
-      // Validate that products data is provided
+      // Handle JSON string input from frontend first
+      $productsInput = $request->input('products');
+      if (is_string($productsInput)) {
+        $productsData = json_decode($productsInput, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+          return back()->with('error', 'Invalid products data format.');
+        }
+        // Replace the input with decoded array for validation
+        $request->merge(['products' => $productsData]);
+      } else {
+        $productsData = $productsInput;
+      }
+
+      // Validate that products data is provided (after decoding if needed)
+      // Note: We validate all fields so Laravel doesn't strip them from $validated
       $validated = $request->validate([
         'products' => 'required|array|min:1',
         'products.*.unit_id' => 'nullable|string|max:255',
         'products.*.serial_number' => 'nullable|string|max:255',
         'products.*.brand' => 'nullable|string|max:255',
         'products.*.model_number' => 'nullable|string|max:255',
-        // Add other fields as needed
+        'products.*.hold_status' => 'nullable|string|max:255',
+        'products.*.hold_branch' => 'nullable|string|max:255',
+        'products.*.salesman' => 'nullable|string|max:255',
+        'products.*.opportunity_name' => 'nullable|string|max:255',
+        'products.*.hold_expiration_date' => 'nullable|date',
+        'products.*.est_completion_date' => 'nullable|date',
+        'products.*.total_cost' => 'nullable|numeric',
+        'products.*.tariff_cost' => 'nullable|numeric',
+        'products.*.sales_order_number' => 'nullable|string|max:255',
+        'products.*.ipas_cpq_number' => 'nullable|string|max:255',
+        'products.*.cps_po_number' => 'nullable|string|max:255',
+        'products.*.ship_date' => 'nullable|date',
+        'products.*.voltage' => 'nullable|string|max:255',
+        'products.*.phase' => 'nullable|string|max:255',
+        'products.*.enclosure' => 'nullable|string|max:255',
+        'products.*.enclosure_type' => 'nullable|string|max:255',
+        'products.*.tank' => 'nullable|string|max:255',
+        'products.*.controller_series' => 'nullable|string|max:255',
+        'products.*.breakers' => 'nullable|string|max:255',
+        'products.*.notes' => 'nullable|string',
+        'products.*.tech_spec' => 'nullable|string',
       ], [
         'products.required' => 'No products data received.',
         'products.array' => 'Products data must be an array.',
         'products.min' => 'At least one product is required.',
       ]);
 
-      $productsData = $request->input('products');
-      
+      $productsData = $validated['products'];
+
+      // Log first product's raw input for debugging
+      if (!empty($productsData)) {
+        Log::info('Import: First product raw input data', [
+          'product_index' => 0,
+          'raw_data' => $productsData[0],
+          'total_products' => count($productsData)
+        ]);
+      }
+
       // Clear all existing products before importing new ones
-      $deletedCount = Product::count();
       Product::truncate();
-      \Log::info('Cleared all existing products', ['count' => $deletedCount]);
-      
+
       $created = 0;
       $skipped = 0;
       $errors = [];
@@ -44,14 +85,12 @@ class AdminProductController extends Controller
           // Skip if unit_id is empty (unit_id is required and unique)
           if (empty($productData['unit_id']) || trim($productData['unit_id']) === '') {
             $skipped++;
-            \Log::info('Skipping row without unit_id', ['index' => $index + 1]);
             continue;
           }
 
-          // Clean and prepare data
-          $productData = array_filter($productData, function($value) {
-            return $value !== null && $value !== '';
-          });
+          // Don't filter out fields - keep all fields even if null/empty
+          // The database columns are nullable, so we can pass null values
+          // Only ensure we have unit_id
 
           // Ensure unit_id is still present after filtering
           if (!isset($productData['unit_id']) || trim($productData['unit_id']) === '') {
@@ -59,54 +98,136 @@ class AdminProductController extends Controller
             continue;
           }
 
-          // Transform date strings to proper format
-          $dateFields = ['hold_expiration_date', 'est_completion_date', 'ship_date'];
-          foreach ($dateFields as $field) {
-            if (isset($productData[$field]) && $productData[$field]) {
-              try {
-                $productData[$field] = \Carbon\Carbon::parse($productData[$field])->format('Y-m-d');
-              } catch (\Exception $e) {
-                // If date parsing fails, set to null
-                $productData[$field] = null;
+          // Define all fillable fields upfront
+          $fillableFields = [
+            'hold_status',
+            'hold_branch',
+            'salesman',
+            'opportunity_name',
+            'hold_expiration_date',
+            'brand',
+            'model_number',
+            'est_completion_date',
+            'total_cost',
+            'tariff_cost',
+            'sales_order_number',
+            'ipas_cpq_number',
+            'cps_po_number',
+            'ship_date',
+            'voltage',
+            'phase',
+            'enclosure',
+            'enclosure_type',
+            'tank',
+            'controller_series',
+            'breakers',
+            'serial_number',
+            'unit_id',
+            'notes',
+            'tech_spec'
+          ];
+
+          // Build filtered data array with all fillable fields
+          $filteredData = [];
+          foreach ($fillableFields as $field) {
+            // Get the value from productData, defaulting to null if not set
+            $value = $productData[$field] ?? null;
+
+            // Process date fields
+            if (in_array($field, ['hold_expiration_date', 'est_completion_date', 'ship_date'])) {
+              if ($value !== null && $value !== '') {
+                try {
+                  $value = \Carbon\Carbon::parse($value)->format('Y-m-d');
+                } catch (\Exception $e) {
+                  // If date parsing fails, set to null
+                  $value = null;
+                }
+              } else {
+                $value = null;
               }
             }
+            // Process numeric fields
+            elseif (in_array($field, ['total_cost', 'tariff_cost'])) {
+              if ($value === '' || $value === null) {
+                $value = null;
+              } elseif (is_numeric($value)) {
+                $value = (float) $value;
+              } else {
+                $value = null;
+              }
+            }
+            // Process string fields - convert empty strings to null
+            else {
+              if ($value === '') {
+                $value = null;
+              }
+            }
+
+            // Always set the field, even if null
+            $filteredData[$field] = $value;
           }
 
-          // Transform numeric fields
-          if (isset($productData['total_cost'])) {
-            $productData['total_cost'] = is_numeric($productData['total_cost']) ? (float) $productData['total_cost'] : null;
-          }
-          if (isset($productData['tariff_cost'])) {
-            $productData['tariff_cost'] = is_numeric($productData['tariff_cost']) ? (float) $productData['tariff_cost'] : null;
+          // Log filtered data for first product to debug
+          if ($index === 0) {
+            Log::info('Import: First product filtered data before create', [
+              'product_index' => 0,
+              'unit_id' => $filteredData['unit_id'] ?? 'MISSING',
+              'filtered_data' => $filteredData,
+              'fields_count' => count($filteredData),
+              'null_fields' => array_keys(array_filter($filteredData, fn($v) => $v === null))
+            ]);
           }
 
-          // Create new product
-          Product::create($productData);
+          // Create new product with filtered data
+          $product = Product::create($filteredData);
+
+          // Log what was actually saved for first product
+          if ($index === 0) {
+            Log::info('Import: First product after database save', [
+              'product_id' => $product->id,
+              'unit_id' => $product->unit_id,
+              'saved_data' => $product->toArray(),
+              'fields_count' => count($product->toArray())
+            ]);
+          }
+
           $created++;
-          \Log::info('Created new product', ['unit_id' => trim($productData['unit_id'])]);
         } catch (\Illuminate\Database\QueryException $e) {
           // Handle unique constraint violations (shouldn't happen after truncate, but just in case)
+          Log::error('Import: Database query exception', [
+            'row_index' => $index + 1,
+            'unit_id' => $productData['unit_id'] ?? 'MISSING',
+            'error_code' => $e->getCode(),
+            'error_message' => $e->getMessage(),
+            'sql_state' => $e->errorInfo[0] ?? null,
+            'driver_code' => $e->errorInfo[1] ?? null
+          ]);
           if ($e->getCode() == 23000) {
             $errors[] = "Row " . ($index + 1) . ": Unit ID '{$productData['unit_id']}' already exists.";
           } else {
             $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
           }
-          \Log::warning('Failed to create product', [
-            'index' => $index + 1,
-            'unit_id' => $productData['unit_id'] ?? 'N/A',
-            'error' => $e->getMessage(),
-          ]);
         } catch (\Exception $e) {
-          $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
-          \Log::warning('Failed to create product', [
-            'index' => $index + 1,
-            'unit_id' => $productData['unit_id'] ?? 'N/A',
-            'error' => $e->getMessage(),
+          Log::error('Import: General exception', [
+            'row_index' => $index + 1,
+            'unit_id' => $productData['unit_id'] ?? 'MISSING',
+            'error_message' => $e->getMessage(),
+            'error_trace' => $e->getTraceAsString()
           ]);
+          $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
         }
       }
 
+      // Log import summary
+      Log::info('Import: Summary', [
+        'total_products_in_input' => count($productsData),
+        'created' => $created,
+        'skipped' => $skipped,
+        'errors_count' => count($errors)
+      ]);
+
       if ($created === 0) {
+        Log::warning('Import: No products were created');
         return back()->with('error', 'No products were created. Please check your data.');
       }
 
@@ -131,15 +252,8 @@ class AdminProductController extends Controller
         $errorMessages = array_merge($errorMessages, $messages);
       }
       $errorMessage = 'Validation failed: ' . implode(' ', $errorMessages);
-      \Log::warning('Validation failed', ['errors' => $e->errors()]);
       return back()->withErrors($e->errors())->with('error', $errorMessage);
     } catch (\Exception $e) {
-      \Log::error('Product import error: ' . $e->getMessage(), [
-        'trace' => $e->getTraceAsString(),
-        'file' => $e->getFile(),
-        'line' => $e->getLine(),
-      ]);
-
       $errorMessage = 'Error importing products: ' . $e->getMessage();
       return back()->with('error', $errorMessage);
     }
@@ -152,7 +266,7 @@ class AdminProductController extends Controller
     // Handle search
     if ($request->has('search') && $request->search) {
       $search = $request->search;
-      $query->where(function($q) use ($search) {
+      $query->where(function ($q) use ($search) {
         $q->where('unit_id', 'like', "%{$search}%")
           ->orWhere('hold_status', 'like', "%{$search}%")
           ->orWhere('hold_branch', 'like', "%{$search}%")
@@ -163,13 +277,13 @@ class AdminProductController extends Controller
     // Handle sorting
     $sortBy = $request->get('sort_by', 'id');
     $sortOrder = $request->get('sort_order', 'desc');
-    
+
     // Validate sort column
     $allowedSortColumns = ['id', 'unit_id', 'hold_status', 'hold_branch', 'salesman', 'created_at'];
     if (!in_array($sortBy, $allowedSortColumns)) {
       $sortBy = 'id';
     }
-    
+
     // Validate sort order
     if (!in_array($sortOrder, ['asc', 'desc'])) {
       $sortOrder = 'desc';
@@ -179,7 +293,7 @@ class AdminProductController extends Controller
 
     $products = $query->paginate(10)->appends($request->query());
 
-    return Inertia::render('Admin/Products/Index', [
+    return view('admin.products.index', [
       'products' => $products,
       'filters' => [
         'search' => $request->get('search', ''),
@@ -192,7 +306,7 @@ class AdminProductController extends Controller
 
   public function edit(Product $product)
   {
-    return Inertia::render('Admin/Products/Edit', [
+    return view('admin.products.edit', [
       'product' => $product
     ]);
   }

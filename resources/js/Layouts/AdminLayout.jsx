@@ -15,6 +15,11 @@ export default function AdminLayout({ children }) {
             href: "/admin/products",
             active: url.startsWith("/admin/products"),
         },
+        {
+            label: "Gallery",
+            href: "/admin/gallery",
+            active: url.startsWith("/admin/gallery"),
+        },
     ];
 
     return (

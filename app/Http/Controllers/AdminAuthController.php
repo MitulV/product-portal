@@ -4,13 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
 
 class AdminAuthController extends Controller
 {
     public function create()
     {
-        return Inertia::render('Admin/Auth/Login');
+        return view('admin.auth.login');
     }
 
     public function store(Request $request)

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Mail;
 
 class ProductController extends Controller
@@ -69,7 +68,7 @@ class ProductController extends Controller
             ->values()
             ->toArray();
 
-        return Inertia::render('Products/Index', [
+        return view('products.index', [
             'products' => $products,
             'availableVoltages' => $availableVoltages,
             'filters' => [
@@ -83,7 +82,16 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        return Inertia::render('Products/Show', [
+        $product->load('galleries');
+        
+        return view('products.show', [
+            'product' => $product
+        ]);
+    }
+
+    public function inquiry(Product $product)
+    {
+        return view('products.inquiry', [
             'product' => $product
         ]);
     }
@@ -108,10 +116,10 @@ class ProductController extends Controller
                     ->html($this->buildEmailTemplate($validated, $product));
             });
 
-            return back()->with('success', 'Thank you for your inquiry! We will be in touch shortly.');
+            return redirect()->route('products.inquiry', $product)->with('success', 'Thank you for your inquiry! Our team will reach out to you shortly.');
         } catch (\Exception $e) {
             \Log::error('Failed to send inquiry email: ' . $e->getMessage());
-            return back()->with('error', 'There was an error submitting your inquiry. Please try again or contact us directly.');
+            return redirect()->route('products.inquiry', $product)->with('error', 'There was an error submitting your inquiry. Please try again or contact us directly.');
         }
     }
 
