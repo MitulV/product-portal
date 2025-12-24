@@ -1,4 +1,7 @@
 #!/bin/bash
+# Make this script executable (in case permissions were lost during git pull)
+chmod +x "$0"
+
 php artisan down
 git pull origin main
 composer install --optimize-autoloader --no-dev
