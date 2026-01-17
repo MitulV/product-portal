@@ -31,6 +31,7 @@ class AdminProductController extends Controller
       // Note: We validate all fields so Laravel doesn't strip them from $validated
       $validated = $request->validate([
         'products' => 'required|array|min:1',
+        'products.*.product_type' => 'nullable|in:Generators,Switch,Docking Stations,Other',
         'products.*.unit_id' => 'nullable|string|max:255',
         'products.*.serial_number' => 'nullable|string|max:255',
         'products.*.brand' => 'nullable|string|max:255',
@@ -39,10 +40,13 @@ class AdminProductController extends Controller
         'products.*.hold_branch' => 'nullable|string|max:255',
         'products.*.salesman' => 'nullable|string|max:255',
         'products.*.opportunity_name' => 'nullable|string|max:255',
+        'products.*.location' => 'nullable|string|max:255',
         'products.*.hold_expiration_date' => 'nullable|date',
+        'products.*.date_hold_added' => 'nullable|date',
         'products.*.est_completion_date' => 'nullable|date',
         'products.*.total_cost' => 'nullable|numeric',
         'products.*.tariff_cost' => 'nullable|numeric',
+        'products.*.retail_cost' => 'nullable|numeric',
         'products.*.sales_order_number' => 'nullable|string|max:255',
         'products.*.ipas_cpq_number' => 'nullable|string|max:255',
         'products.*.cps_po_number' => 'nullable|string|max:255',
@@ -55,7 +59,35 @@ class AdminProductController extends Controller
         'products.*.controller_series' => 'nullable|string|max:255',
         'products.*.breakers' => 'nullable|string|max:255',
         'products.*.notes' => 'nullable|string',
+        'products.*.description' => 'nullable|string',
         'products.*.tech_spec' => 'nullable|string',
+        // Generators specific
+        'products.*.application_group' => 'nullable|string|max:255',
+        'products.*.engine_model' => 'nullable|string|max:255',
+        'products.*.unit_specification' => 'nullable|string|max:255',
+        'products.*.ibc_certification' => 'nullable|string|max:255',
+        'products.*.exhaust_emissions' => 'nullable|string|max:255',
+        'products.*.temp_rise' => 'nullable|string|max:3',
+        'products.*.fuel_type' => 'nullable|string|max:6',
+        'products.*.power' => 'nullable|integer',
+        'products.*.engine_speed' => 'nullable|integer',
+        'products.*.radiator_design_temp' => 'nullable|integer',
+        'products.*.frequency' => 'nullable|integer',
+        'products.*.full_load_amps' => 'nullable|integer',
+        // Switch specific
+        'products.*.transition_type' => 'nullable|string|max:8',
+        'products.*.bypass_isolation' => 'nullable|string|max:24',
+        'products.*.service_entrance_rated' => 'nullable|string|max:255',
+        'products.*.contactor_type' => 'nullable|string|max:255',
+        'products.*.controller_model' => 'nullable|string|max:255',
+        'products.*.communications_type' => 'nullable|string|max:255',
+        'products.*.accessories' => 'nullable|string|max:255',
+        'products.*.catalog_number' => 'nullable|string|max:255',
+        'products.*.quote_number' => 'nullable|string|max:255',
+        'products.*.number_of_poles' => 'nullable|string|max:12',
+        'products.*.amperage' => 'nullable|integer',
+        // Docking Stations specific
+        'products.*.circuit_breaker_type' => 'nullable|string|max:255',
       ], [
         'products.required' => 'No products data received.',
         'products.array' => 'Products data must be an array.',
@@ -100,16 +132,20 @@ class AdminProductController extends Controller
 
           // Define all fillable fields upfront
           $fillableFields = [
+            'product_type',
             'hold_status',
             'hold_branch',
             'salesman',
             'opportunity_name',
+            'location',
             'hold_expiration_date',
+            'date_hold_added',
             'brand',
             'model_number',
             'est_completion_date',
             'total_cost',
             'tariff_cost',
+            'retail_cost',
             'sales_order_number',
             'ipas_cpq_number',
             'cps_po_number',
@@ -124,7 +160,35 @@ class AdminProductController extends Controller
             'serial_number',
             'unit_id',
             'notes',
-            'tech_spec'
+            'description',
+            'tech_spec',
+            // Generators specific
+            'application_group',
+            'engine_model',
+            'unit_specification',
+            'ibc_certification',
+            'exhaust_emissions',
+            'temp_rise',
+            'fuel_type',
+            'power',
+            'engine_speed',
+            'radiator_design_temp',
+            'frequency',
+            'full_load_amps',
+            // Switch specific
+            'transition_type',
+            'bypass_isolation',
+            'service_entrance_rated',
+            'contactor_type',
+            'controller_model',
+            'communications_type',
+            'accessories',
+            'catalog_number',
+            'quote_number',
+            'number_of_poles',
+            'amperage',
+            // Docking Stations specific
+            'circuit_breaker_type',
           ];
 
           // Build filtered data array with all fillable fields
@@ -134,7 +198,7 @@ class AdminProductController extends Controller
             $value = $productData[$field] ?? null;
 
             // Process date fields
-            if (in_array($field, ['hold_expiration_date', 'est_completion_date', 'ship_date'])) {
+            if (in_array($field, ['hold_expiration_date', 'date_hold_added', 'est_completion_date', 'ship_date'])) {
               if ($value !== null && $value !== '') {
                 try {
                   $value = \Carbon\Carbon::parse($value)->format('Y-m-d');
@@ -146,12 +210,22 @@ class AdminProductController extends Controller
                 $value = null;
               }
             }
-            // Process numeric fields
-            elseif (in_array($field, ['total_cost', 'tariff_cost'])) {
+            // Process numeric/decimal fields
+            elseif (in_array($field, ['total_cost', 'tariff_cost', 'retail_cost'])) {
               if ($value === '' || $value === null) {
                 $value = null;
               } elseif (is_numeric($value)) {
                 $value = (float) $value;
+              } else {
+                $value = null;
+              }
+            }
+            // Process integer fields
+            elseif (in_array($field, ['power', 'engine_speed', 'radiator_design_temp', 'frequency', 'full_load_amps', 'amperage', 'hold_branch', 'sales_order_number', 'voltage', 'phase'])) {
+              if ($value === '' || $value === null) {
+                $value = null;
+              } elseif (is_numeric($value)) {
+                $value = (int) $value;
               } else {
                 $value = null;
               }
@@ -279,7 +353,7 @@ class AdminProductController extends Controller
     $sortOrder = $request->get('sort_order', 'desc');
 
     // Validate sort column
-    $allowedSortColumns = ['id', 'unit_id', 'hold_status', 'hold_branch', 'salesman', 'created_at'];
+    $allowedSortColumns = ['id', 'product_type', 'unit_id', 'hold_status', 'hold_branch', 'salesman', 'created_at'];
     if (!in_array($sortBy, $allowedSortColumns)) {
       $sortBy = 'id';
     }
@@ -328,5 +402,17 @@ class AdminProductController extends Controller
   {
     $product->delete();
     return redirect()->route('admin.products.index')->with('success', 'Product deleted successfully.');
+  }
+
+  public function downloadTemplate()
+  {
+    // Serve the static template file from public directory
+    $filePath = public_path('product-import-template.xlsx');
+
+    if (!file_exists($filePath)) {
+      return back()->with('error', 'Template file not found. Please contact administrator.');
+    }
+
+    return response()->download($filePath, 'product-import-template.xlsx');
   }
 }

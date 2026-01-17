@@ -12,25 +12,26 @@ Route::post('/products/{product}/inquiry', [\App\Http\Controllers\ProductControl
 Route::redirect('/admin', '/admin/dashboard');
 
 Route::middleware('guest')->group(function () {
-    Route::get('/admin/login', [\App\Http\Controllers\AdminAuthController::class, 'create'])->name('login');
-    Route::post('/admin/login', [\App\Http\Controllers\AdminAuthController::class, 'store']);
+  Route::get('/admin/login', [\App\Http\Controllers\AdminAuthController::class, 'create'])->name('login');
+  Route::post('/admin/login', [\App\Http\Controllers\AdminAuthController::class, 'store']);
 });
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
-    
-    Route::post('/logout', [\App\Http\Controllers\AdminAuthController::class, 'destroy'])->name('logout');
 
-    Route::get('/dashboard', function () {
-        $totalProducts = \App\Models\Product::count();
-        return view('admin.dashboard', [
-            'totalProducts' => $totalProducts
-        ]);
-    })->name('dashboard');
+  Route::post('/logout', [\App\Http\Controllers\AdminAuthController::class, 'destroy'])->name('logout');
 
-    Route::post('/products/import', [\App\Http\Controllers\AdminProductController::class, 'import'])->name('products.import');
-    Route::resource('products', \App\Http\Controllers\AdminProductController::class)->except(['create', 'store']);
-    
-    Route::get('/gallery', [\App\Http\Controllers\AdminGalleryController::class, 'index'])->name('gallery.index');
-    Route::post('/gallery', [\App\Http\Controllers\AdminGalleryController::class, 'store'])->name('gallery.store');
-    Route::delete('/gallery/{id}', [\App\Http\Controllers\AdminGalleryController::class, 'destroy'])->name('gallery.destroy');
+  Route::get('/dashboard', function () {
+    $totalProducts = \App\Models\Product::count();
+    return view('admin.dashboard', [
+      'totalProducts' => $totalProducts
+    ]);
+  })->name('dashboard');
+
+  Route::post('/products/import', [\App\Http\Controllers\AdminProductController::class, 'import'])->name('products.import');
+  Route::get('/products/download-template', [\App\Http\Controllers\AdminProductController::class, 'downloadTemplate'])->name('products.download-template');
+  Route::resource('products', \App\Http\Controllers\AdminProductController::class)->except(['create', 'store']);
+
+  Route::get('/gallery', [\App\Http\Controllers\AdminGalleryController::class, 'index'])->name('gallery.index');
+  Route::post('/gallery', [\App\Http\Controllers\AdminGalleryController::class, 'store'])->name('gallery.store');
+  Route::delete('/gallery/{id}', [\App\Http\Controllers\AdminGalleryController::class, 'destroy'])->name('gallery.destroy');
 });

@@ -117,33 +117,31 @@
                     </div>
 
                     <div class="space-y-2 mb-4">
-                        @if($product->model_number)
+                        @if($product->isPublicField('model_number') && $product->model_number)
                         <div class="flex items-center text-sm text-slate-600">
                             <span class="font-medium w-24">Model:</span>
                             <span>{{ $product->model_number }}</span>
                         </div>
                         @endif
-                        @if($product->voltage)
+                        @if($product->isPublicField('voltage') && $product->voltage)
                         <div class="flex items-center text-sm text-slate-600">
                             <span class="font-medium w-24">Voltage:</span>
                             <span>{{ $product->voltage }}</span>
                         </div>
                         @endif
-                        @if($product->serial_number)
+                        @if($product->isPublicField('phase') && $product->phase)
                         <div class="flex items-center text-sm text-slate-600">
-                            <span class="font-medium w-24">Serial:</span>
-                            <span class="font-mono text-xs">{{ $product->serial_number }}</span>
+                            <span class="font-medium w-24">Phase:</span>
+                            <span>{{ $product->phase }}</span>
+                        </div>
+                        @endif
+                        @if($product->isPublicField('enclosure_type') && $product->enclosure_type)
+                        <div class="flex items-center text-sm text-slate-600">
+                            <span class="font-medium w-24">Enclosure:</span>
+                            <span>{{ $product->enclosure_type }}</span>
                         </div>
                         @endif
                     </div>
-
-                    @if($product->total_cost)
-                    <div class="mb-4">
-                        <span class="text-2xl font-bold text-blue-600">
-                            ${{ number_format($product->total_cost, 2) }}
-                        </span>
-                    </div>
-                    @endif
 
                     <a
                         href="{{ route('products.show', $product) }}"

@@ -57,28 +57,34 @@
             <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-6 mb-8">
                 <h2 class="text-xl font-semibold text-slate-900 mb-4">Product Information</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    @if ($product->brand)
+                    @if ($product->isPublicField('brand') && $product->brand)
                         <div>
                             <span class="text-sm text-slate-500">Brand</span>
                             <p class="font-medium text-slate-900">{{ $product->brand }}</p>
                         </div>
                     @endif
-                    @if ($product->model_number)
+                    @if ($product->isPublicField('model_number') && $product->model_number)
                         <div>
                             <span class="text-sm text-slate-500">Model Number</span>
                             <p class="font-medium text-slate-900">{{ $product->model_number }}</p>
                         </div>
                     @endif
-                    @if ($product->serial_number)
-                        <div>
-                            <span class="text-sm text-slate-500">Serial Number</span>
-                            <p class="font-medium text-slate-900">{{ $product->serial_number }}</p>
-                        </div>
-                    @endif
-                    @if ($product->voltage)
+                    @if ($product->isPublicField('voltage') && $product->voltage)
                         <div>
                             <span class="text-sm text-slate-500">Voltage</span>
                             <p class="font-medium text-slate-900">{{ $product->voltage }}</p>
+                        </div>
+                    @endif
+                    @if ($product->isPublicField('phase') && $product->phase)
+                        <div>
+                            <span class="text-sm text-slate-500">Phase</span>
+                            <p class="font-medium text-slate-900">{{ $product->phase }}</p>
+                        </div>
+                    @endif
+                    @if ($product->isPublicField('enclosure_type') && $product->enclosure_type)
+                        <div>
+                            <span class="text-sm text-slate-500">Enclosure Type</span>
+                            <p class="font-medium text-slate-900">{{ $product->enclosure_type }}</p>
                         </div>
                     @endif
                 </div>
