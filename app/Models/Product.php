@@ -95,7 +95,7 @@ class Product extends Model
                 'unit_specification', 'ibc_certification', 'exhaust_emissions', 'temp_rise',
                 'description', 'fuel_type', 'voltage', 'phase', 'unit_id', 'power',
                 'engine_speed', 'radiator_design_temp', 'frequency', 'full_load_amps',
-                'tech_spec', 'est_completion_date', 'ship_date'
+                'est_completion_date', 'ship_date'
             ],
             'Switch' => [
                 'brand', 'transition_type', 'enclosure_type', 'bypass_isolation',
