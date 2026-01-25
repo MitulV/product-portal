@@ -53,10 +53,13 @@ export default function Index({ products, filters = {} }) {
 
     const parseExcelFile = (file) => {
         return new Promise((resolve, reject) => {
-            console.log('📄 Starting Excel file parsing...');
-            console.log('📋 File Info:', {
+            // ============================================
+            // STAGE 1: FILE READING
+            // ============================================
+            console.group('📄 Excel File Import - Starting');
+            console.log('📋 File Information:', {
                 name: file.name,
-                size: file.size,
+                size: `${(file.size / 1024).toFixed(2)} KB`,
                 type: file.type,
                 lastModified: new Date(file.lastModified).toLocaleString()
             });
@@ -65,68 +68,115 @@ export default function Index({ products, filters = {} }) {
             
             reader.onload = (e) => {
                 try {
-                    console.log('✅ File read successfully, parsing workbook...');
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    console.log('📊 Workbook Info:', {
-                        sheetNames: workbook.SheetNames,
-                        sheetCount: workbook.SheetNames.length
-                    });
-                    
-                    // Check if "Generators" sheet exists
-                    if (!workbook.SheetNames.includes('Generators')) {
-                        console.error('❌ "Generators" sheet not found. Available sheets:', workbook.SheetNames);
-                        reject(new Error('The Excel file must contain a "Generators" sheet.'));
-                        return;
-                    }
-                    
-                    console.log('✅ Found "Generators" sheet, reading data...');
-                    const worksheet = workbook.Sheets['Generators'];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-                        header: 1,
-                        defval: null,
-                        raw: false
-                    });
-                    
-                    console.log('📈 Raw Excel Data:', {
-                        totalRows: jsonData.length,
-                        firstFewRows: jsonData.slice(0, 10),
-                        allData: jsonData
-                    });
-                    
-                    // Headers are at row 5 (index 4), data starts at row 6 (index 5)
-                    if (jsonData.length < 6) {
-                        console.error('❌ Insufficient rows. Expected at least 6 rows, got:', jsonData.length);
-                        reject(new Error('The Excel file must have at least 6 rows (headers at row 5, data at row 6).'));
-                        return;
-                    }
-                    
-                    // Extract headers from row 5 (index 4)
-                    const headers = jsonData[4] || [];
-                    console.log('📑 Headers (Row 5):', headers);
-                    console.log('📑 Headers with indices:', headers.map((h, i) => `${String.fromCharCode(65 + i)}5: ${h}`));
-                    
-                    // Extract data starting from row 6 (index 5)
-                    const rows = jsonData.slice(5);
-                    console.log('📝 Data Rows (starting from row 6):', {
-                        rowCount: rows.length,
-                        firstRow: rows[0],
-                        firstFewRows: rows.slice(0, 5),
-                        allRows: rows
-                    });
-                    
-                    // Helper function to clean cell values
-                    const cleanValue = (value) => {
-                        if (value === null || value === undefined || value === '') {
-                            return null;
-                        }
-                        const str = String(value).trim();
-                        return str === '' ? null : str;
-                    };
-
-                    // Helper function to parse dates (handles Excel date serial numbers and date strings)
-                    const parseDate = (value) => {
+            // ============================================
+            // STAGE 2: WORKBOOK PARSING
+            // ============================================
+            console.group('📊 Workbook Parsing');
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            console.log('Available Sheets:', workbook.SheetNames);
+            console.log('Total Sheets:', workbook.SheetNames.length);
+            
+            // Check if "Generators" sheet exists
+            if (!workbook.SheetNames.includes('Generators')) {
+                console.error('❌ "Generators" sheet not found!');
+                console.error('Available sheets:', workbook.SheetNames);
+                console.groupEnd();
+                console.groupEnd();
+                reject(new Error('The Excel file must contain a "Generators" sheet.'));
+                return;
+            }
+            
+            console.log('✅ Found "Generators" sheet');
+            console.groupEnd();
+            // ============================================
+            // STAGE 3: DATA EXTRACTION
+            // ============================================
+            console.group('📈 Data Extraction');
+            const worksheet = workbook.Sheets['Generators'];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                header: 1,
+                defval: null,
+                raw: false
+            });
+            
+            console.log(`Total rows in Excel: ${jsonData.length}`);
+            
+            // Headers are at row 1 (index 0), data starts at row 2 (index 1)
+            if (jsonData.length < 2) {
+                console.error('❌ Insufficient rows!');
+                console.error(`Expected: At least 2 rows (headers at row 1, data at row 2)`);
+                console.error(`Found: ${jsonData.length} rows`);
+                console.groupEnd();
+                console.groupEnd();
+                reject(new Error('The Excel file must have at least 2 rows (headers at row 1, data at row 2).'));
+                return;
+            }
+            
+            // Extract headers from row 1 (index 0)
+            const headers = jsonData[0] || [];
+            console.log('📑 Header Row (Row 1):');
+            console.table(headers.map((h, i) => ({
+                Column: String.fromCharCode(65 + i),
+                Index: i,
+                Header: h || '(empty)'
+            })));
+            
+            // Dynamically find Stock ID column index from headers
+            const stockIdColumnIndex = headers.findIndex(h => {
+                const header = String(h || '').toLowerCase().trim();
+                return header === 'stock id' || header === 'stockid' || header === 'unit id' || header === 'unitid';
+            });
+            
+            if (stockIdColumnIndex === -1) {
+                console.warn('⚠️  Stock ID column not found in headers!');
+                console.warn('Searched for: "Stock ID", "StockID", "Unit ID", "UnitID"');
+                console.warn('Using default index: 26 (Column AA)');
+                console.warn('Available headers:', headers.filter(h => h).join(', '));
+            } else {
+                console.log(`✅ Stock ID column found:`);
+                console.log(`   Column: ${String.fromCharCode(65 + stockIdColumnIndex)}`);
+                console.log(`   Index: ${stockIdColumnIndex}`);
+                console.log(`   Header: "${headers[stockIdColumnIndex]}"`);
+            }
+            console.groupEnd();
+            
+            // Helper function to clean cell values
+            const cleanValue = (value) => {
+                if (value === null || value === undefined || value === '') {
+                    return null;
+                }
+                const str = String(value).trim();
+                return str === '' ? null : str;
+            };
+            
+            // ============================================
+            // STAGE 4: STOCK ID ANALYSIS
+            // ============================================
+            console.group('🔍 Stock ID Analysis');
+            const rows = jsonData.slice(1); // Data starts from row 2 (index 1)
+            console.log(`Total data rows (starting from row 2): ${rows.length}`);
+            
+            const stockIdIndex = stockIdColumnIndex !== -1 ? stockIdColumnIndex : 26;
+            const stockIdAnalysis = rows.slice(0, 10).map((row, idx) => {
+                const stockIdValue = row[stockIdIndex];
+                const cleaned = cleanValue(stockIdValue);
+                const isValid = !!(cleaned && cleaned.trim() !== '');
+                return {
+                    'Row #': idx + 2, // Row 2 in Excel (0-based index 1, so idx + 2)
+                    'Stock ID Value': stockIdValue ?? '(null/empty)',
+                    'Type': typeof stockIdValue,
+                    'Cleaned': cleaned ?? '(null)',
+                    'Valid': isValid ? '✅ Yes' : '❌ No'
+                };
+            });
+            
+            console.table(stockIdAnalysis);
+            console.groupEnd();
+            
+            // Helper function to parse dates (handles Excel date serial numbers and date strings)
+            const parseDate = (value) => {
                         if (!value) return null;
                         
                         // If it's a number (Excel date serial), convert it
@@ -150,75 +200,192 @@ export default function Index({ products, filters = {} }) {
                         return null;
                     };
 
-                    // Map rows to product objects
-                    console.log('🔄 Processing rows into product objects...');
-                    const products = rows
-                        .filter((row, index) => {
-                            const hasData = row && row.some(cell => cell !== null && cell !== '');
-                            if (!hasData) {
-                                console.log(`⏭️  Skipping empty row ${index + 6} (index ${index})`);
-                            }
-                            return hasData;
-                        })
-                        .map((row, index) => {
-                            console.log(`📦 Processing row ${index + 6} (index ${index}):`, row);
+            // ============================================
+            // STAGE 5: ROW PROCESSING
+            // ============================================
+            console.group('🔄 Row Processing');
+            const emptyRows = [];
+            const rowsWithData = [];
+            
+            const validRows = rows.filter((row, index) => {
+                const hasData = row && row.some(cell => cell !== null && cell !== '');
+                if (!hasData) {
+                    emptyRows.push(index + 2); // Row 2 in Excel
+                } else {
+                    rowsWithData.push(index + 2); // Row 2 in Excel
+                }
+                return hasData;
+            });
+            
+            console.log(`Rows with data: ${rowsWithData.length}`);
+            if (emptyRows.length > 0) {
+                console.warn(`Empty rows skipped: ${emptyRows.length} (rows: ${emptyRows.slice(0, 10).join(', ')}${emptyRows.length > 10 ? '...' : ''})`);
+            }
+            console.groupEnd();
+            
+            // ============================================
+            // STAGE 6: PRODUCT MAPPING
+            // ============================================
+            console.group('📦 Product Mapping');
+            const products = validRows
+                        .map((row, originalIndex) => {
+                            const rowNumber = rowsWithData[originalIndex];
+                            const stockIdIndex = stockIdColumnIndex !== -1 ? stockIdColumnIndex : 26;
                             
-                            // Map columns A-Y (indices 0-24) to product fields
+                            // Map columns based on actual Excel structure (headers in row 1)
+                            // Column order: Hold, Hold Branch, Salesman, Opportunity Name, Brand, Model, Location,
+                            // IPAS/CPQ #, CPS PO#, Enclosure, Enclosure Type, Tank, Controller Series, Breaker(s),
+                            // Notes, Application Group, Engine Model, Unit Specification, IBC Certification,
+                            // Exhaust Emissions, Temp Rise, Description, Fuel Type, Voltage, Phase, Serial Number,
+                            // Stock ID (dynamically detected or index 26), Power, Engine Speed, Radiator Design Temp, Frequency,
+                            // Full Load Amps, Tech Spec, Date Hold Added, Hold Expiration, Est Completion Date,
+                            // Ship Date, Total Cost, Retail Cost, Tariff, Sales Order #
                             const product = {
+                                product_type: 'Generators',
                                 hold_status: cleanValue(row[0]),
                                 hold_branch: cleanValue(row[1]),
                                 salesman: cleanValue(row[2]),
                                 opportunity_name: cleanValue(row[3]),
-                                hold_expiration_date: parseDate(row[4]),
-                                brand: cleanValue(row[5]),
-                                model_number: cleanValue(row[6]),
-                                est_completion_date: parseDate(row[7]),
-                                total_cost: row[8] ? (parseFloat(row[8]) || null) : null,
-                                tariff_cost: row[9] ? (parseFloat(row[9]) || null) : null,
-                                sales_order_number: cleanValue(row[10]),
-                                ipas_cpq_number: cleanValue(row[11]),
-                                cps_po_number: cleanValue(row[12]),
-                                ship_date: parseDate(row[13]),
-                                voltage: cleanValue(row[14]),
-                                phase: cleanValue(row[15]),
-                                enclosure: cleanValue(row[16]),
-                                enclosure_type: cleanValue(row[17]),
-                                tank: cleanValue(row[18]),
-                                controller_series: cleanValue(row[19]),
-                                breakers: cleanValue(row[20]),
-                                serial_number: cleanValue(row[21]),
-                                unit_id: cleanValue(row[22]),
-                                notes: cleanValue(row[23]),
-                                tech_spec: cleanValue(row[24]),
+                                brand: cleanValue(row[4]),
+                                model_number: cleanValue(row[5]),
+                                location: cleanValue(row[6]),
+                                ipas_cpq_number: cleanValue(row[7]),
+                                cps_po_number: cleanValue(row[8]),
+                                enclosure: cleanValue(row[9]),
+                                enclosure_type: cleanValue(row[10]),
+                                tank: cleanValue(row[11]),
+                                controller_series: cleanValue(row[12]),
+                                breakers: cleanValue(row[13]),
+                                notes: cleanValue(row[14]),
+                                application_group: cleanValue(row[15]),
+                                engine_model: cleanValue(row[16]),
+                                unit_specification: cleanValue(row[17]),
+                                ibc_certification: cleanValue(row[18]),
+                                exhaust_emissions: cleanValue(row[19]),
+                                temp_rise: cleanValue(row[20]),
+                                description: cleanValue(row[21]),
+                                fuel_type: cleanValue(row[22]),
+                                voltage: cleanValue(row[23]),
+                                phase: cleanValue(row[24]),
+                                serial_number: cleanValue(row[25]),
+                                unit_id: cleanValue(row[stockIdIndex]), // Stock ID - dynamically detected or default to 26
+                                power: row[27] ? (parseInt(row[27]) || null) : null,
+                                engine_speed: row[28] ? (parseInt(row[28]) || null) : null,
+                                radiator_design_temp: row[29] ? (parseInt(row[29]) || null) : null,
+                                frequency: row[30] ? (parseInt(row[30]) || null) : null,
+                                full_load_amps: row[31] ? (parseInt(row[31]) || null) : null,
+                                tech_spec: cleanValue(row[32]),
+                                date_hold_added: parseDate(row[33]),
+                                hold_expiration_date: parseDate(row[34]),
+                                est_completion_date: parseDate(row[35]),
+                                ship_date: parseDate(row[36]),
+                                total_cost: row[37] ? (parseFloat(row[37]) || null) : null,
+                                retail_cost: row[38] ? (parseFloat(row[38]) || null) : null,
+                                tariff_cost: row[39] ? (parseFloat(row[39]) || null) : null,
+                                sales_order_number: cleanValue(row[40]),
                             };
                             
-                            console.log(`✅ Parsed product from row ${index + 6}:`, product);
+                            // Add original row number for tracking
+                            product._originalRowNumber = rowNumber;
                             return product;
                         })
                         .filter(product => {
-                            // Skip rows where unit_id is empty (unit_id is required and unique)
                             const hasUnitId = product.unit_id && product.unit_id.trim() !== '';
-                            if (!hasUnitId) {
-                                console.log('⏭️  Filtering out product without unit_id (required):', product);
-                            }
                             return hasUnitId;
                         });
+            
+            const skippedProducts = products.filter(p => !(p.unit_id && p.unit_id.trim() !== ''));
+            const validProducts = products.filter(p => p.unit_id && p.unit_id.trim() !== '');
+            
+            console.log(`Products mapped: ${products.length}`);
+            console.log(`Valid products (with Stock ID): ${validProducts.length}`);
+            if (skippedProducts.length > 0) {
+                console.error(`❌ Products without Stock ID: ${skippedProducts.length}`);
+                console.table(skippedProducts.map(p => ({
+                    'Row #': p._originalRowNumber,
+                    'Brand': p.brand || '(empty)',
+                    'Model': p.model_number || '(empty)',
+                    'Serial': p.serial_number || '(empty)',
+                    'Stock ID': p.unit_id || '(MISSING)'
+                })));
+            }
+            console.groupEnd();
                     
-                    console.log('🎉 Excel parsing complete!');
-                    console.log('📊 Final Products Summary:', {
-                        totalProducts: products.length,
-                        products: products,
-                        productsWithUnitId: products.filter(p => p.unit_id).length,
-                        productsWithSerialNumber: products.filter(p => p.serial_number).length,
-                    });
-                    
-                    resolve(products);
+            // ============================================
+            // STAGE 7: FINAL SUMMARY
+            // ============================================
+            console.group('📊 Import Summary');
+            
+            // Remove tracking field before resolving
+            const cleanedProducts = products.map(p => {
+                const { _originalRowNumber, ...product } = p;
+                return product;
+            });
+            
+            const skippedCount = rows.length - cleanedProducts.length;
+            const emptyRowCount = emptyRows.length;
+            const missingStockIdCount = skippedCount - emptyRowCount;
+            
+            console.log('📈 Statistics:');
+            console.table({
+                'Total Excel Rows': jsonData.length,
+                'Header Row': 'Row 1',
+                'Data Rows': rows.length,
+                'Empty Rows': emptyRowCount,
+                'Rows with Data': rowsWithData.length,
+                'Products Mapped': products.length,
+                'Valid Products (with Stock ID)': cleanedProducts.length,
+                'Skipped (missing Stock ID)': missingStockIdCount,
+                'Total Skipped': skippedCount
+            });
+            
+            if (cleanedProducts.length > 0) {
+                console.log('✅ Valid Products:');
+                console.table(cleanedProducts.map((p, idx) => ({
+                    '#': idx + 1,
+                    'Stock ID': p.unit_id,
+                    'Brand': p.brand || '(empty)',
+                    'Model': p.model_number || '(empty)',
+                    'Serial': p.serial_number || '(empty)'
+                })));
+            }
+            
+            if (skippedCount > 0) {
+                console.warn(`⚠️  WARNING: ${skippedCount} row(s) were skipped:`);
+                if (emptyRowCount > 0) {
+                    console.warn(`   - ${emptyRowCount} empty row(s)`);
+                }
+                if (missingStockIdCount > 0) {
+                    console.error(`   - ${missingStockIdCount} row(s) missing Stock ID`);
+                }
+            }
+            
+            console.groupEnd(); // Import Summary
+            console.groupEnd(); // Excel File Import
+            
+            // Return both products and metadata
+            resolve({
+                products: cleanedProducts,
+                skippedCount: skippedCount,
+                totalRows: rows.length,
+                emptyRows: emptyRowCount,
+                missingStockId: missingStockIdCount
+            });
                 } catch (error) {
+                    console.error('❌ Error parsing Excel file:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        stack: error.stack,
+                        name: error.name
+                    });
+                    console.groupEnd(); // Close any open groups
                     reject(new Error('Error parsing Excel file: ' + error.message));
                 }
             };
             
-            reader.onerror = () => {
+            reader.onerror = (error) => {
+                console.error('❌ File reading error:', error);
+                console.groupEnd(); // Close any open groups
                 reject(new Error('Error reading file.'));
             };
             
@@ -239,24 +406,39 @@ export default function Index({ products, filters = {} }) {
             console.log('🚀 Starting file upload process...');
             console.log('📎 Selected file:', data.file);
             
-            // Parse Excel file in frontend
-            const productsData = await parseExcelFile(data.file);
+            // ============================================
+            // UPLOAD: Parse Excel file
+            // ============================================
+            console.group('📤 Upload Preparation');
+            const parseResult = await parseExcelFile(data.file);
+            const productsData = parseResult.products || parseResult; // Handle both old and new format
             
-            console.log('✅ Parsing complete. Products to import:', productsData);
-            console.log('📦 Products count:', productsData.length);
+            console.log(`✅ Parsing complete. Products ready to import: ${productsData.length}`);
+            
+            // Show warning if products were skipped
+            if (parseResult.skippedCount && parseResult.skippedCount > 0) {
+                const message = `${parseResult.skippedCount} product(s) were skipped because they are missing Stock ID (required field). Only ${productsData.length} product(s) will be imported.`;
+                console.warn('⚠️', message);
+                if (parseResult.missingStockId > 0) {
+                    alert(`Warning: ${parseResult.missingStockId} product(s) were skipped because they are missing Stock ID (required field).\n\nOnly ${productsData.length} product(s) will be imported.\n\nPlease check your Excel file - all products must have a value in the Stock ID column.`);
+                }
+            }
             
             if (productsData.length === 0) {
-                console.warn('⚠️  No valid products found in the Excel file.');
-                alert('No valid products found in the Excel file.');
+                console.error('❌ No valid products found in the Excel file.');
+                console.groupEnd();
+                alert('No valid products found in the Excel file. All products must have a Stock ID value.');
                 setProcessingExcel(false);
                 return;
             }
 
-            console.log('📤 Preparing to send data to backend...');
-            console.log('📋 Data to send:', {
-                productsCount: productsData.length,
-                products: productsData
+            console.log('📋 Products by type:', {
+                Generators: productsData.filter(p => p.product_type === 'Generators').length,
+                Switch: productsData.filter(p => p.product_type === 'Switch').length,
+                'Docking Stations': productsData.filter(p => p.product_type === 'Docking Stations').length,
+                Other: productsData.filter(p => p.product_type === 'Other').length
             });
+            console.groupEnd();
 
             // Send JSON data to backend - set products in form data
             setData('products', productsData);
@@ -341,7 +523,7 @@ export default function Index({ products, filters = {} }) {
             )}
             
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                <strong>Excel Format:</strong> The file must contain a "Generators" sheet with headers in row 5 (A5 to Y5) and data starting from row 6.
+                <strong>Excel Format:</strong> The file must contain a "Generators" sheet with headers in row 1 (A1 onwards) and data starting from row 2.
             </div>
 
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">

@@ -60,7 +60,7 @@ class GenerateSampleExcel extends Command
     $sheet = $spreadsheet->createSheet();
     $sheet->setTitle('Generators');
 
-    // Headers in row 5 (A5 onwards)
+    // Headers in row 1 (A1 onwards)
     $headers = [
       'Hold',
       'Hold Branch',
@@ -105,8 +105,8 @@ class GenerateSampleExcel extends Command
       'Sales Order #'
     ];
 
-    // Set headers in row 5
-    $sheet->fromArray([$headers], null, 'A5');
+    // Set headers in row 1
+    $sheet->fromArray([$headers], null, 'A1');
 
     // Style header row
     $headerStyle = [
@@ -114,9 +114,9 @@ class GenerateSampleExcel extends Command
       'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
       'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
     ];
-    $sheet->getStyle('A5:AN5')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:AN1')->applyFromArray($headerStyle);
 
-    // Sample data rows (starting from row 6) - only if not template
+    // Sample data rows (starting from row 2) - only if not template
     if (!$isTemplate) {
       $sampleData = [
         [
@@ -207,7 +207,7 @@ class GenerateSampleExcel extends Command
         ],
       ];
 
-      $row = 6;
+      $row = 2; // Data starts from row 2 (row 1 is headers)
       foreach ($sampleData as $data) {
         $sheet->fromArray([$data], null, "A{$row}");
         $row++;
@@ -225,7 +225,7 @@ class GenerateSampleExcel extends Command
     $sheet = $spreadsheet->createSheet();
     $sheet->setTitle('Switch');
 
-    // Headers in row 5
+    // Headers in row 1
     $headers = [
       'Hold',
       'Hold Branch',
@@ -256,7 +256,7 @@ class GenerateSampleExcel extends Command
       'Total Cost'
     ];
 
-    $sheet->fromArray([$headers], null, 'A5');
+    $sheet->fromArray([$headers], null, 'A1');
 
     // Style header row
     $headerStyle = [
@@ -264,7 +264,7 @@ class GenerateSampleExcel extends Command
       'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
       'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
     ];
-    $sheet->getStyle('A5:AA5')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:AA1')->applyFromArray($headerStyle);
 
     // Sample data - only if not template
     if (!$isTemplate) {
@@ -329,7 +329,7 @@ class GenerateSampleExcel extends Command
         ],
       ];
 
-      $row = 6;
+      $row = 2; // Data starts from row 2 (row 1 is headers)
       foreach ($sampleData as $data) {
         $sheet->fromArray([$data], null, "A{$row}");
         $row++;
@@ -347,7 +347,7 @@ class GenerateSampleExcel extends Command
     $sheet = $spreadsheet->createSheet();
     $sheet->setTitle('Docking Stations');
 
-    // Headers in row 5
+    // Headers in row 1
     $headers = [
       'Hold',
       'Hold Branch',
@@ -373,7 +373,7 @@ class GenerateSampleExcel extends Command
       'Total Cost'
     ];
 
-    $sheet->fromArray([$headers], null, 'A5');
+    $sheet->fromArray([$headers], null, 'A1');
 
     // Style header row
     $headerStyle = [
@@ -381,7 +381,7 @@ class GenerateSampleExcel extends Command
       'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
       'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
     ];
-    $sheet->getStyle('A5:V5')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:V1')->applyFromArray($headerStyle);
 
     // Sample data - only if not template
     if (!$isTemplate) {
@@ -436,7 +436,7 @@ class GenerateSampleExcel extends Command
         ],
       ];
 
-      $row = 6;
+      $row = 2; // Data starts from row 2 (row 1 is headers)
       foreach ($sampleData as $data) {
         $sheet->fromArray([$data], null, "A{$row}");
         $row++;
@@ -454,7 +454,7 @@ class GenerateSampleExcel extends Command
     $sheet = $spreadsheet->createSheet();
     $sheet->setTitle('Other');
 
-    // Headers in row 5
+    // Headers in row 1
     $headers = [
       'Hold',
       'Hold Branch',
@@ -470,7 +470,7 @@ class GenerateSampleExcel extends Command
       'Total Cost'
     ];
 
-    $sheet->fromArray([$headers], null, 'A5');
+    $sheet->fromArray([$headers], null, 'A1');
 
     // Style header row
     $headerStyle = [
@@ -478,7 +478,7 @@ class GenerateSampleExcel extends Command
       'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
       'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
     ];
-    $sheet->getStyle('A5:L5')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
 
     // Sample data - only if not template
     if (!$isTemplate) {
@@ -513,7 +513,7 @@ class GenerateSampleExcel extends Command
         ],
       ];
 
-      $row = 6;
+      $row = 2; // Data starts from row 2 (row 1 is headers)
       foreach ($sampleData as $data) {
         $sheet->fromArray([$data], null, "A{$row}");
         $row++;

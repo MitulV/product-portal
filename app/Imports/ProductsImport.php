@@ -99,11 +99,11 @@ class GeneratorsImport implements ToModel, WithStartRow, WithValidation
   use ProductImportTrait;
 
   /**
-   * Headers are at row 5, data starts at row 6
+   * Headers are at row 1, data starts at row 2
    */
   public function startRow(): int
   {
-    return 6;
+    return 2;
   }
 
   /**
@@ -179,7 +179,7 @@ class SwitchImport implements ToModel, WithStartRow, WithValidation
 
   public function startRow(): int
   {
-    return 6;
+    return 2;
   }
 
   public function model(array $row)
@@ -235,7 +235,7 @@ class DockingStationsImport implements ToModel, WithStartRow, WithValidation
 
   public function startRow(): int
   {
-    return 6;
+    return 2;
   }
 
   public function model(array $row)
@@ -286,7 +286,7 @@ class OtherImport implements ToModel, WithStartRow, WithValidation
 
   public function startRow(): int
   {
-    return 6;
+    return 2;
   }
 
   public function model(array $row)

@@ -96,6 +96,50 @@ class AdminProductController extends Controller
 
       $productsData = $validated['products'];
 
+      // Check for duplicate unit_ids in the import data and remove duplicates
+      $seenUnitIds = [];
+      $deduplicatedProducts = [];
+      $duplicateCount = 0;
+
+      foreach ($productsData as $index => $productData) {
+        $unitId = $productData['unit_id'] ?? null;
+
+        if ($unitId && in_array($unitId, $seenUnitIds)) {
+          // This is a duplicate - skip it
+          $duplicateCount++;
+          Log::warning('Import: Skipping duplicate unit_id in import data', [
+            'row_index' => $index + 1,
+            'unit_id' => $unitId,
+            'first_occurrence_at' => array_search($unitId, $seenUnitIds) + 1
+          ]);
+          continue;
+        }
+
+        if ($unitId) {
+          $seenUnitIds[] = $unitId;
+        }
+
+        $deduplicatedProducts[] = $productData;
+      }
+
+      if ($duplicateCount > 0) {
+        Log::warning('Import: Removed duplicate products from import data', [
+          'duplicates_removed' => $duplicateCount,
+          'original_count' => count($productsData),
+          'deduplicated_count' => count($deduplicatedProducts)
+        ]);
+      }
+
+      // Use deduplicated data
+      $productsData = $deduplicatedProducts;
+
+      // Log all unique unit_ids being imported
+      Log::info('Import: Unique unit_ids in import data (after deduplication)', [
+        'unit_ids' => $seenUnitIds,
+        'unique_count' => count($seenUnitIds),
+        'total_products' => count($productsData)
+      ]);
+
       // Log first product's raw input for debugging
       if (!empty($productsData)) {
         Log::info('Import: First product raw input data', [
@@ -106,27 +150,49 @@ class AdminProductController extends Controller
       }
 
       // Clear all existing products before importing new ones
-      Product::truncate();
+      // Delete all products (using delete() instead of truncate() for better compatibility)
+      try {
+        $deletedCount = Product::query()->delete();
+        Log::info('Import: All existing products deleted successfully', [
+          'deleted_count' => $deletedCount
+        ]);
+      } catch (\Exception $e) {
+        Log::error('Import: Failed to delete existing products', [
+          'error' => $e->getMessage(),
+          'trace' => $e->getTraceAsString()
+        ]);
+        // Continue anyway - updateOrCreate will handle duplicates
+        Log::warning('Import: Continuing with import despite delete failure - will use updateOrCreate');
+      }
 
       $created = 0;
+      $updated = 0;
       $skipped = 0;
       $errors = [];
 
       foreach ($productsData as $index => $productData) {
         try {
-          // Skip if unit_id is empty (unit_id is required and unique)
+          // Skip if Stock ID is empty (Stock ID is required and unique)
           if (empty($productData['unit_id']) || trim($productData['unit_id']) === '') {
             $skipped++;
+            Log::warning('Import: Skipped product missing Stock ID', [
+              'row_index' => $index + 1,
+              'product_data' => $productData
+            ]);
             continue;
           }
 
           // Don't filter out fields - keep all fields even if null/empty
           // The database columns are nullable, so we can pass null values
-          // Only ensure we have unit_id
+          // Only ensure we have Stock ID (unit_id)
 
-          // Ensure unit_id is still present after filtering
+          // Ensure Stock ID is still present after filtering
           if (!isset($productData['unit_id']) || trim($productData['unit_id']) === '') {
             $skipped++;
+            Log::warning('Import: Skipped product missing Stock ID after filtering', [
+              'row_index' => $index + 1,
+              'product_data' => $productData
+            ]);
             continue;
           }
 
@@ -252,22 +318,52 @@ class AdminProductController extends Controller
             ]);
           }
 
-          // Create new product with filtered data
-          $product = Product::create($filteredData);
+          // Use updateOrCreate to handle cases where product might already exist
+          // This prevents unique constraint violations
+          // First check if product already exists in THIS import batch (to avoid duplicates)
+          $existingInBatch = Product::where('unit_id', $filteredData['unit_id'])->first();
+
+          $product = Product::updateOrCreate(
+            ['unit_id' => $filteredData['unit_id']],
+            $filteredData
+          );
+
+          // Check if this was a new product or an update
+          $wasRecentlyCreated = $product->wasRecentlyCreated;
+
+          // Log if this unit_id was already processed in this batch
+          if ($existingInBatch && $existingInBatch->id !== $product->id) {
+            Log::warning('Import: Duplicate unit_id in same import batch', [
+              'row_index' => $index + 1,
+              'unit_id' => $filteredData['unit_id'],
+              'existing_product_id' => $existingInBatch->id,
+              'new_product_id' => $product->id
+            ]);
+          }
 
           // Log what was actually saved for first product
           if ($index === 0) {
             Log::info('Import: First product after database save', [
               'product_id' => $product->id,
               'unit_id' => $product->unit_id,
+              'was_created' => $wasRecentlyCreated,
+              'was_updated' => !$wasRecentlyCreated,
               'saved_data' => $product->toArray(),
               'fields_count' => count($product->toArray())
             ]);
           }
 
-          $created++;
+          if ($wasRecentlyCreated) {
+            $created++;
+          } else {
+            $updated++;
+            Log::info('Import: Product updated (already existed)', [
+              'row_index' => $index + 1,
+              'unit_id' => $product->unit_id
+            ]);
+          }
         } catch (\Illuminate\Database\QueryException $e) {
-          // Handle unique constraint violations (shouldn't happen after truncate, but just in case)
+          // Handle unique constraint violations
           Log::error('Import: Database query exception', [
             'row_index' => $index + 1,
             'unit_id' => $productData['unit_id'] ?? 'MISSING',
@@ -276,8 +372,24 @@ class AdminProductController extends Controller
             'sql_state' => $e->errorInfo[0] ?? null,
             'driver_code' => $e->errorInfo[1] ?? null
           ]);
-          if ($e->getCode() == 23000) {
-            $errors[] = "Row " . ($index + 1) . ": Unit ID '{$productData['unit_id']}' already exists.";
+          if ($e->getCode() == 23000 || ($e->errorInfo[0] ?? null) == '23000') {
+            // Try to update the existing product instead
+            try {
+              $existingProduct = Product::where('unit_id', $productData['unit_id'])->first();
+              if ($existingProduct) {
+                $existingProduct->update($filteredData);
+                $updated++;
+                Log::info('Import: Updated existing product after unique constraint error', [
+                  'row_index' => $index + 1,
+                  'unit_id' => $productData['unit_id'],
+                  'product_id' => $existingProduct->id
+                ]);
+              } else {
+                $errors[] = "Row " . ($index + 1) . ": Unit ID '{$productData['unit_id']}' constraint violation but product not found.";
+              }
+            } catch (\Exception $updateError) {
+              $errors[] = "Row " . ($index + 1) . ": Unit ID '{$productData['unit_id']}' - " . $updateError->getMessage();
+            }
           } else {
             $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
           }
@@ -296,29 +408,53 @@ class AdminProductController extends Controller
       Log::info('Import: Summary', [
         'total_products_in_input' => count($productsData),
         'created' => $created,
+        'updated' => $updated,
         'skipped' => $skipped,
         'errors_count' => count($errors)
       ]);
 
-      if ($created === 0) {
-        Log::warning('Import: No products were created');
-        return back()->with('error', 'No products were created. Please check your data.');
+      if ($created === 0 && $updated === 0) {
+        Log::warning('Import: No products were created or updated');
+        return back()->with('error', 'No products were created or updated. Please check your data.');
       }
 
       $message = "Successfully refreshed data source. ";
-      $message .= "Imported {$created} product(s).";
+      if ($created > 0) {
+        $message .= "Imported {$created} new product(s). ";
+      }
+      if ($updated > 0) {
+        $message .= "Updated {$updated} existing product(s). ";
+      }
       if ($skipped > 0) {
-        $message .= " {$skipped} row(s) skipped (missing unit_id).";
+        $message .= " {$skipped} row(s) skipped (missing Stock ID).";
       }
       if (count($errors) > 0) {
         $message .= " " . count($errors) . " error(s) occurred.";
+      }
+
+      // Prepare import statistics for display
+      $importStats = [
+        'total_rows' => count($productsData),
+        'imported' => $created + $updated, // Total products processed
+        'created' => $created,
+        'updated' => $updated,
+        'skipped' => $skipped,
+        'empty_rows' => 0, // This would need to be tracked if we want to separate empty vs missing Stock ID
+        'missing_stock_id' => $skipped, // For now, all skipped are missing Stock ID
+        'errors' => count($errors)
+      ];
+
+      if (count($errors) > 0) {
         // Store detailed errors in session
         return redirect()->route('admin.products.index')
           ->with('success', $message)
-          ->with('import_errors', $errors);
+          ->with('import_errors', $errors)
+          ->with('import_stats', $importStats);
       }
 
-      return redirect()->route('admin.products.index')->with('success', $message);
+      return redirect()->route('admin.products.index')
+        ->with('success', $message)
+        ->with('import_stats', $importStats);
     } catch (\Illuminate\Validation\ValidationException $e) {
       // Return detailed validation errors
       $errorMessages = [];

@@ -6,18 +6,52 @@
 
 @section('content')
     <div x-data="productAdmin()">
-        @if (session('import_errors') && is_array(session('import_errors')) && count(session('import_errors')) > 0)
-            <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div class="font-semibold text-yellow-900 mb-2">
-                    Import Errors ({{ count(session('import_errors')) }}):
+
+
+        {{-- Error Message --}}
+        @if (session('error'))
+            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0">
+                        <svg class="w-5 h-5 text-red-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-semibold text-red-900 mb-1">Import Error</div>
+                        <div class="text-sm text-red-800">{{ session('error') }}</div>
+                    </div>
                 </div>
-                <ul class="list-disc list-inside space-y-1 text-sm text-yellow-800 max-h-60 overflow-y-auto">
-                    @foreach (session('import_errors') as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
             </div>
         @endif
+
+        {{-- Import Errors Details --}}
+        @if (session('import_errors') && is_array(session('import_errors')) && count(session('import_errors')) > 0)
+            <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0">
+                        <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-semibold text-yellow-900 mb-2">
+                            Import Warnings ({{ count(session('import_errors')) }}):
+                        </div>
+                        <ul class="list-disc list-inside space-y-1 text-sm text-yellow-800 max-h-60 overflow-y-auto">
+                            @foreach (session('import_errors') as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        @endif
+
 
         <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div class="flex items-start gap-3">
@@ -36,8 +70,8 @@
                                 class="bg-blue-100 px-1 rounded">Switch</code>, <code
                                 class="bg-blue-100 px-1 rounded">Docking Stations</code>, and <code
                                 class="bg-blue-100 px-1 rounded">Other</code></li>
-                        <li>Each sheet must have <strong>headers in row 5</strong> (starting from column A)</li>
-                        <li>Product data must start from <strong>row 6</strong> (row 5 is for headers only)</li>
+                        <li>Each sheet must have <strong>headers in row 1</strong> (starting from column A)</li>
+                        <li>Product data must start from <strong>row 2</strong> (row 1 is for headers only)</li>
                         <li>Each product type has different columns - download the template below to see the exact column
                             structure</li>
                         <li>Leave cells empty if data is not available - all fields are optional except <code
@@ -303,6 +337,12 @@
                     if (!this.selectedFile) return;
 
                     this.processingExcel = true;
+                    console.log('═══════════════════════════════════════════════════════════');
+                    console.log('📤 EXCEL IMPORT - STARTING');
+                    console.log('═══════════════════════════════════════════════════════════');
+                    console.log('File:', this.selectedFile.name,
+                        `(${(this.selectedFile.size / 1024).toFixed(2)} KB)`);
+
                     try {
                         // Wait for XLSX to be available
                         if (typeof XLSX === 'undefined') {
@@ -334,7 +374,8 @@
 
                                 if (missingSheets.length > 0) {
                                     alert(
-                                        `The Excel file must contain all required sheets. Missing: ${missingSheets.join(', ')}`);
+                                        `The Excel file must contain all required sheets. Missing: ${missingSheets.join(', ')}`
+                                    );
                                     this.processingExcel = false;
                                     return;
                                 }
@@ -343,31 +384,169 @@
 
                                 // Helper function to parse a sheet
                                 const parseSheet = (sheetName, productType, columnMapping) => {
+                                    console.log(`\n📊 Parsing sheet: ${sheetName}`);
                                     const worksheet = workbook.Sheets[sheetName];
-                                    if (!worksheet) return [];
-
-                                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-                                        header: 1,
-                                        defval: null,
-                                        raw: false
-                                    });
-
-                                    if (jsonData.length < 6) {
-                                        console.warn(
-                                            `${sheetName} sheet has insufficient rows. Skipping.`
-                                            );
+                                    if (!worksheet) {
+                                        console.warn(`⚠️  Sheet "${sheetName}" not found`);
                                         return [];
                                     }
 
-                                    const rows = jsonData.slice(
-                                    5); // Data starts from row 6
+                                    // Get the actual range of the sheet to read ALL rows
+                                    const sheetRange = worksheet['!ref'];
+                                    console.log(
+                                        `   Sheet range: ${sheetRange || 'unknown'}`);
 
-                                    return rows
-                                        .filter((row) => row && row.some(cell => cell !==
-                                            null && cell !== ''))
-                                        .map((row) => {
+                                    let maxRow = 0;
+                                    if (sheetRange) {
+                                        const range = XLSX.utils.decode_range(sheetRange);
+                                        maxRow = range.e.r; // End row index (0-based)
+                                        console.log(
+                                            `   Maximum row in sheet: ${maxRow + 1} (0-based index: ${maxRow})`
+                                        );
+                                    }
+
+                                    // Read ALL rows including empty ones
+                                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                                        header: 1,
+                                        defval: null,
+                                        raw: false,
+                                        blankrows: true // Include blank rows
+                                    });
+
+                                    console.log(
+                                        `   Total rows read by parser: ${jsonData.length}`
+                                    );
+                                    console.log(
+                                        `   Expected rows based on range: ${maxRow + 1}`
+                                    );
+
+                                    if (jsonData.length < 2) {
+                                        console.warn(
+                                            `   ⚠️  ${sheetName} sheet has insufficient rows (need at least 2, got ${jsonData.length}). Skipping.`
+                                        );
+                                        return [];
+                                    }
+
+                                    // Get all rows from row 2 onwards (index 1+)
+                                    // Headers are in row 1 (index 0), data starts from row 2 (index 1)
+                                    const rows = [];
+                                    const startIndex =
+                                        1; // Row 2 in Excel (0-based index 1)
+                                    const endIndex = maxRow > 0 ? maxRow : jsonData.length -
+                                        1;
+
+                                    // Extract headers from row 1 (index 0)
+                                    const headers = jsonData[0] || [];
+                                    console.log(`   Headers (Row 1):`, headers);
+
+                                    // Dynamically find Stock ID column index from headers
+                                    const stockIdColumnIndex = headers.findIndex(h => {
+                                        const header = String(h || '').toLowerCase()
+                                            .trim();
+                                        return header === 'stock id' || header ===
+                                            'stockid' || header === 'unit id' ||
+                                            header === 'unitid';
+                                    });
+
+                                    let stockIdIndex = 26; // Default for Generators
+                                    if (stockIdColumnIndex !== -1) {
+                                        stockIdIndex = stockIdColumnIndex;
+                                        console.log(
+                                            `   ✅ Stock ID column found at index ${stockIdIndex} (Column ${String.fromCharCode(65 + stockIdIndex)})`
+                                        );
+                                    } else {
+                                        console.warn(
+                                            `   ⚠️  Stock ID column not found, using default index 26`
+                                        );
+                                    }
+
+                                    console.log(
+                                        `   Reading rows from index ${startIndex} to ${endIndex} (Excel rows ${startIndex + 1} to ${endIndex + 1})`
+                                    );
+                                    console.log(
+                                        `   Parser read ${jsonData.length} rows, but sheet range indicates ${maxRow + 1} rows`
+                                    );
+
+                                    // Read all rows, including those beyond jsonData.length
+                                    // The issue: sheet_to_json stops at first empty row, so rows beyond that need raw cell reading
+                                    for (let rowIdx = startIndex; rowIdx <=
+                                        endIndex; rowIdx++) {
+                                        if (rowIdx < jsonData.length) {
+                                            // Row exists in parsed data
+                                            rows.push(jsonData[rowIdx] || []);
+                                        } else {
+                                            // Row is beyond parsed data, read raw cells from worksheet
+                                            const row = [];
+                                            if (sheetRange) {
+                                                const range = XLSX.utils.decode_range(
+                                                    sheetRange);
+                                                const maxCol = range.e
+                                                    .c; // Maximum column index
+
+                                                // Read all cells in this row from the raw worksheet
+                                                for (let colIdx = 0; colIdx <=
+                                                    maxCol; colIdx++) {
+                                                    const cellAddress = XLSX.utils
+                                                        .encode_cell({
+                                                            r: rowIdx,
+                                                            c: colIdx
+                                                        });
+                                                    const cell = worksheet[cellAddress];
+                                                    if (cell && cell.v !== undefined) {
+                                                        row[colIdx] = cell
+                                                            .v; // Get cell value
+                                                    } else {
+                                                        row[colIdx] = null;
+                                                    }
+                                                }
+                                            }
+                                            rows.push(row);
+                                            const nonEmptyCells = row.filter(c => c !==
+                                                null && c !== '').length;
+                                            console.log(
+                                                `   📥 Row ${rowIdx + 1} read from raw cells (${nonEmptyCells} non-empty cells)`
+                                            );
+                                        }
+                                    }
+
+                                    console.log(`   Data rows extracted: ${rows.length}`);
+
+                                    // Log all rows with their Stock ID values for debugging
+                                    console.log(`   📋 All rows analysis:`);
+                                    rows.forEach((row, idx) => {
+                                        const rowNumber = idx +
+                                            2; // Row 2 in Excel (0-based index 1, so idx + 2)
+                                        const hasData = row && row.some(cell =>
+                                            cell !== null && cell !== '');
+                                        // Use dynamically detected Stock ID column index
+                                        const stockIdValue = row && row.length >
+                                            stockIdIndex ? row[stockIdIndex] : null;
+                                        const stockIdCleaned = stockIdValue ?
+                                            String(stockIdValue).trim() : '';
+                                        const hasStockId = stockIdCleaned !== '';
+
+                                        console.log(
+                                            `      Row ${rowNumber}: hasData=${hasData}, StockID="${stockIdValue}" (cleaned: "${stockIdCleaned}"), valid=${hasStockId}`
+                                        );
+                                    });
+
+                                    const rowsWithData = rows.filter((row) => row && row
+                                        .some(cell => cell !== null && cell !== ''));
+                                    console.log(
+                                        `   Rows with data: ${rowsWithData.length}`);
+
+                                    if (rows.length > rowsWithData.length) {
+                                        const emptyRows = rows.length - rowsWithData.length;
+                                        console.warn(
+                                            `   ⚠️  ${emptyRows} row(s) appear to be empty and will be skipped`
+                                        );
+                                    }
+
+                                    const products = rowsWithData
+                                        .map((row, index) => {
                                             const product = {
-                                                product_type: productType
+                                                product_type: productType,
+                                                _originalRowIndex: index
                                             };
                                             Object.keys(columnMapping).forEach(key => {
                                                 const mapper = columnMapping[
@@ -375,9 +554,57 @@
                                                 product[key] = mapper(row);
                                             });
                                             return product;
-                                        })
-                                        .filter(product => product.unit_id && product
-                                            .unit_id.trim() !== '');
+                                        });
+
+                                    const productsWithStockId = products.filter(product =>
+                                        product.unit_id && product.unit_id.trim() !== ''
+                                    );
+                                    const skippedCount = products.length -
+                                        productsWithStockId.length;
+
+                                    console.log(
+                                        `   ✅ Products with Stock ID: ${productsWithStockId.length}`
+                                    );
+
+                                    // Log all products with their details
+                                    console.log(`   📦 Product details:`);
+                                    products.forEach((p, idx) => {
+                                        const rowNumber = p._originalRowIndex !==
+                                            undefined ? p._originalRowIndex + 2 :
+                                            idx + 2; // Row 2 in Excel
+                                        const hasStockId = p.unit_id && p.unit_id
+                                            .trim() !== '';
+                                        const status = hasStockId ? '✅' : '❌';
+                                        console.log(
+                                            `      ${status} Row ${rowNumber}: StockID="${p.unit_id || '(MISSING)'}" | Brand="${p.brand || '(empty)'}" | Model="${p.model_number || '(empty)'}"`
+                                        );
+                                    });
+
+                                    if (skippedCount > 0) {
+                                        console.error(
+                                            `   ❌ Products without Stock ID: ${skippedCount}`
+                                        );
+                                        // Log which products are missing Stock ID with more details
+                                        products.forEach((p, idx) => {
+                                            if (!p.unit_id || p.unit_id.trim() ===
+                                                '') {
+                                                const rowNumber = p
+                                                    ._originalRowIndex !==
+                                                    undefined ? p
+                                                    ._originalRowIndex + 2 : idx +
+                                                    2; // Row 2 in Excel
+                                                console.error(
+                                                    `      ❌ Row ${rowNumber}: Missing Stock ID | Brand: ${p.brand || '(empty)'} | Model: ${p.model_number || '(empty)'} | Serial: ${p.serial_number || '(empty)'}`
+                                                );
+                                            }
+                                        });
+                                    }
+
+                                    // Remove tracking field before returning
+                                    productsWithStockId.forEach(p => delete p
+                                        ._originalRowIndex);
+
+                                    return productsWithStockId;
                                 };
 
                                 const cleanValue = (value) => {
@@ -554,25 +781,39 @@
                                 allProducts = allProducts.concat(parseSheet('Other', 'Other',
                                     otherMapping));
 
+                                console.log(
+                                    '\n═══════════════════════════════════════════════════════════'
+                                );
+                                console.log('📊 IMPORT SUMMARY');
+                                console.log(
+                                    '═══════════════════════════════════════════════════════════'
+                                );
+
                                 if (allProducts.length === 0) {
+                                    console.error('❌ No valid products found in any sheet!');
                                     alert(
-                                        'No valid products found in any sheet of the Excel file.');
+                                        'No valid products found in any sheet of the Excel file.'
+                                    );
                                     this.processingExcel = false;
                                     return;
                                 }
 
-                                console.log('Total products to import:', allProducts.length);
-                                console.log('Products by type:', {
-                                    Generators: allProducts.filter(p => p
-                                        .product_type === 'Generators').length,
+                                const productsByType = {
+                                    Generators: allProducts.filter(p => p.product_type ===
+                                        'Generators').length,
                                     Switch: allProducts.filter(p => p.product_type ===
                                         'Switch').length,
                                     'Docking Stations': allProducts.filter(p => p
-                                            .product_type === 'Docking Stations')
-                                        .length,
+                                        .product_type === 'Docking Stations').length,
                                     Other: allProducts.filter(p => p.product_type ===
                                         'Other').length,
-                                });
+                                };
+
+                                console.log(`Total products to import: ${allProducts.length}`);
+                                console.log('Products by type:', productsByType);
+                                console.log(
+                                    '═══════════════════════════════════════════════════════════\n'
+                                );
 
                                 const form = document.createElement('form');
                                 form.method = 'POST';
@@ -594,16 +835,24 @@
                                 document.body.appendChild(form);
                                 form.submit();
                             } catch (error) {
+                                console.error('❌ Error parsing Excel file:', error);
+                                console.error('Error details:', {
+                                    message: error.message,
+                                    stack: error.stack,
+                                    name: error.name
+                                });
                                 alert('Error parsing Excel file: ' + error.message);
                                 this.processingExcel = false;
                             }
                         };
-                        reader.onerror = () => {
+                        reader.onerror = (error) => {
+                            console.error('❌ File reading error:', error);
                             alert('Error reading file.');
                             this.processingExcel = false;
                         };
                         reader.readAsArrayBuffer(this.selectedFile);
                     } catch (error) {
+                        console.error('❌ Error loading XLSX library:', error);
                         alert('Error loading XLSX library: ' + error.message);
                         this.processingExcel = false;
                     }
