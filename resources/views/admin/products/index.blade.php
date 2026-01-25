@@ -114,38 +114,50 @@
         </div>
 
         <!-- Search and Filters -->
-        <div class="mb-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <div class="flex-1 max-w-md">
-                <form method="GET" action="{{ route('admin.products.index') }}" class="flex gap-2">
-                    <div class="flex-1 relative">
-                        <input type="text" name="search" x-model="search"
-                            placeholder="Search by Unit ID, Hold Status, Hold Branch, or Salesman..."
-                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" />
-                        @if (isset($filters['search']) && $filters['search'])
-                            <span
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
-                                Active
-                            </span>
-                        @endif
-                    </div>
-                    <input type="hidden" name="sort_by" :value="sortBy">
-                    <input type="hidden" name="sort_order" :value="sortOrder">
-                    <button type="submit"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">
-                        Search
-                    </button>
+        <div class="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div class="flex-1 w-full max-w-2xl">
+                <div class="relative">
+
+
+                    <!-- Search Input -->
+                    <input type="text" x-model="search" @input.debounce.500ms="performSearch()"
+                        @keyup.enter="performSearch()"
+                        placeholder="Search products by Unit ID, Brand, Model, Voltage, Phase, Enclosure, Tank, Breakers, Description..."
+                        class="w-full pl-12 pr-12 p-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-all duration-200 bg-white" />
+
+
+                </div>
+
+                <!-- Search Info / Active Search Badge -->
+                <div class="mt-2 flex items-center gap-2 flex-wrap">
                     @if (isset($filters['search']) && $filters['search'])
-                        <a href="{{ route('admin.products.index', ['sort_by' => $filters['sort_by'] ?? 'id', 'sort_order' => $filters['sort_order'] ?? 'desc']) }}"
-                            class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 transition">
-                            Clear
-                        </a>
+                        <div
+                            class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+                            <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <span class="text-blue-700 font-medium">Active search:</span>
+                            <span class="text-blue-900 font-semibold">"{{ $filters['search'] }}"</span>
+                            <a href="{{ route('admin.products.index', ['sort_by' => $filters['sort_by'] ?? 'id', 'sort_order' => $filters['sort_order'] ?? 'desc']) }}"
+                                class="ml-1 text-blue-600 hover:text-blue-800 transition-colors">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </a>
+                        </div>
                     @endif
-                </form>
-                @if (isset($filters['search']) && $filters['search'])
-                    <div class="mt-2 text-xs text-slate-500">
-                        Searching for: <strong>{{ $filters['search'] }}</strong>
+
+                    <!-- Search Hint -->
+                    <div class="text-xs text-slate-500 flex items-center gap-1">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Searches across all product fields</span>
                     </div>
-                @endif
+                </div>
             </div>
 
             <!-- Total Count Display -->
@@ -168,47 +180,476 @@
                 <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
                     <tr>
                         <th class="px-4 py-3 w-16 sticky left-0 bg-slate-50 z-10">#</th>
-                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none"
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
                             @click="handleSort('product_type')">
                             <div class="flex items-center gap-2">
-                                Product Type
-                                <span x-show="sortBy === 'product_type'" class="text-blue-600"
-                                    x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                <span>Product Type</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'product_type'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'product_type'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
                             </div>
                         </th>
-                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none"
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
                             @click="handleSort('unit_id')">
                             <div class="flex items-center gap-2">
-                                Unit ID
-                                <span x-show="sortBy === 'unit_id'" class="text-blue-600"
-                                    x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                <span>Unit ID</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'unit_id'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'unit_id'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
                             </div>
                         </th>
-                        <th class="px-4 py-3">Hold Status</th>
-                        <th class="px-4 py-3">Hold Branch</th>
-                        <th class="px-4 py-3">Salesman</th>
-                        <th class="px-4 py-3">Opportunity Name</th>
-                        <th class="px-4 py-3">Hold Expiration</th>
-                        <th class="px-4 py-3">Brand</th>
-                        <th class="px-4 py-3">Model Number</th>
-                        <th class="px-4 py-3">Est Completion</th>
-                        <th class="px-4 py-3">Total Cost</th>
-                        <th class="px-4 py-3">Tariff Cost</th>
-                        <th class="px-4 py-3">Sales Order #</th>
-                        <th class="px-4 py-3">IPAS CPQ #</th>
-                        <th class="px-4 py-3">CPS PO #</th>
-                        <th class="px-4 py-3">Ship Date</th>
-                        <th class="px-4 py-3">Voltage</th>
-                        <th class="px-4 py-3">Phase</th>
-                        <th class="px-4 py-3">Enclosure</th>
-                        <th class="px-4 py-3">Enclosure Type</th>
-                        <th class="px-4 py-3">Tank</th>
-                        <th class="px-4 py-3">Controller Series</th>
-                        <th class="px-4 py-3">Breakers</th>
-                        <th class="px-4 py-3">Serial #</th>
-                        <th class="px-4 py-3">Notes</th>
-                        <th class="px-4 py-3">Tech Spec</th>
-                        <th class="px-4 py-3">Actions</th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('hold_status')">
+                            <div class="flex items-center gap-2">
+                                <span>Hold Status</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'hold_status'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'hold_status'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('hold_branch')">
+                            <div class="flex items-center gap-2">
+                                <span>Hold Branch</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'hold_branch'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'hold_branch'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('salesman')">
+                            <div class="flex items-center gap-2">
+                                <span>Salesman</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'salesman'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'salesman'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('opportunity_name')">
+                            <div class="flex items-center gap-2">
+                                <span>Opportunity Name</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'opportunity_name'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'opportunity_name'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('hold_expiration_date')">
+                            <div class="flex items-center gap-2">
+                                <span>Hold Expiration</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'hold_expiration_date'"
+                                        class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'hold_expiration_date'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('brand')">
+                            <div class="flex items-center gap-2">
+                                <span>Brand</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'brand'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'brand'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('model_number')">
+                            <div class="flex items-center gap-2">
+                                <span>Model Number</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'model_number'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'model_number'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('est_completion_date')">
+                            <div class="flex items-center gap-2">
+                                <span>Est Completion</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'est_completion_date'"
+                                        class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'est_completion_date'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('total_cost')">
+                            <div class="flex items-center gap-2">
+                                <span>Total Cost</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'total_cost'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'total_cost'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('tariff_cost')">
+                            <div class="flex items-center gap-2">
+                                <span>Tariff Cost</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'tariff_cost'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'tariff_cost'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('sales_order_number')">
+                            <div class="flex items-center gap-2">
+                                <span>Sales Order #</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'sales_order_number'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'sales_order_number'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('ipas_cpq_number')">
+                            <div class="flex items-center gap-2">
+                                <span>IPAS CPQ #</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'ipas_cpq_number'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'ipas_cpq_number'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('cps_po_number')">
+                            <div class="flex items-center gap-2">
+                                <span>CPS PO #</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'cps_po_number'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'cps_po_number'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('ship_date')">
+                            <div class="flex items-center gap-2">
+                                <span>Ship Date</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'ship_date'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'ship_date'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('voltage')">
+                            <div class="flex items-center gap-2">
+                                <span>Voltage</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'voltage'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'voltage'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('phase')">
+                            <div class="flex items-center gap-2">
+                                <span>Phase</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'phase'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'phase'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('enclosure')">
+                            <div class="flex items-center gap-2">
+                                <span>Enclosure</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'enclosure'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'enclosure'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('enclosure_type')">
+                            <div class="flex items-center gap-2">
+                                <span>Enclosure Type</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'enclosure_type'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'enclosure_type'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('tank')">
+                            <div class="flex items-center gap-2">
+                                <span>Tank</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'tank'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'tank'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('controller_series')">
+                            <div class="flex items-center gap-2">
+                                <span>Controller Series</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'controller_series'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'controller_series'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('breakers')">
+                            <div class="flex items-center gap-2">
+                                <span>Breakers</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'breakers'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'breakers'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('serial_number')">
+                            <div class="flex items-center gap-2">
+                                <span>Serial #</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'serial_number'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'serial_number'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('notes')">
+                            <div class="flex items-center gap-2">
+                                <span>Notes</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'notes'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'notes'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('tech_spec')">
+                            <div class="flex items-center gap-2">
+                                <span>Tech Spec</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'tech_spec'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'tech_spec'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -260,15 +701,11 @@
                                     {{ $product->notes ?? '-' }}</td>
                                 <td class="px-4 py-3 max-w-xs truncate" title="{{ $product->tech_spec ?? '' }}">
                                     {{ $product->tech_spec ?? '-' }}</td>
-                                <td class="px-4 py-3">
-                                    <a href="{{ route('admin.products.edit', $product) }}"
-                                        class="text-blue-600 hover:text-blue-800 text-sm">Edit</a>
-                                </td>
                             </tr>
                         @endforeach
                     @else
                         <tr>
-                            <td colspan="28" class="px-6 py-12 text-center text-slate-400">
+                            <td colspan="27" class="px-6 py-12 text-center text-slate-400">
                                 No products found.
                             </td>
                         </tr>
@@ -858,11 +1295,30 @@
                     }
                 },
                 handleSort(column) {
-                    this.sortBy = column;
-                    this.sortOrder = (this.sortBy === column && this.sortOrder === 'asc') ? 'desc' :
-                        'asc';
-                    window.location.href = '/admin/products?search=' + encodeURIComponent(this.search) +
-                        '&sort_by=' + column + '&sort_order=' + this.sortOrder;
+                    // Toggle sort order if clicking the same column, otherwise default to ascending
+                    if (this.sortBy === column) {
+                        this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.sortBy = column;
+                        this.sortOrder = 'asc';
+                    }
+                    this.performSearch();
+                },
+                performSearch() {
+                    const params = new URLSearchParams();
+                    if (this.search) {
+                        params.set('search', this.search);
+                    }
+                    params.set('sort_by', this.sortBy);
+                    params.set('sort_order', this.sortOrder);
+                    window.location.href = '/admin/products?' + params.toString();
+                },
+                clearSearch() {
+                    this.search = '';
+                    const params = new URLSearchParams();
+                    params.set('sort_by', this.sortBy);
+                    params.set('sort_order', this.sortOrder);
+                    window.location.href = '/admin/products?' + params.toString();
                 }
             }));
         });

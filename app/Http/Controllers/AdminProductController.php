@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 use App\Imports\ProductsImport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -473,14 +474,28 @@ class AdminProductController extends Controller
   {
     $query = Product::query();
 
-    // Handle search
+    // Handle search - universal search across multiple fields
     if ($request->has('search') && $request->search) {
       $search = $request->search;
       $query->where(function ($q) use ($search) {
+        // Basic fields
         $q->where('unit_id', 'like', "%{$search}%")
           ->orWhere('hold_status', 'like', "%{$search}%")
           ->orWhere('hold_branch', 'like', "%{$search}%")
-          ->orWhere('salesman', 'like', "%{$search}%");
+          ->orWhere('salesman', 'like', "%{$search}%")
+          ->orWhere('brand', 'like', "%{$search}%")
+          ->orWhere('model_number', 'like', "%{$search}%")
+          // User-requested search fields (string fields)
+          ->orWhere('voltage', 'like', "%{$search}%")
+          ->orWhere('tank', 'like', "%{$search}%")
+          ->orWhere('enclosure', 'like', "%{$search}%")
+          ->orWhere('phase', 'like', "%{$search}%")
+          ->orWhere('number_of_poles', 'like', "%{$search}%")
+          ->orWhere('transition_type', 'like', "%{$search}%")
+          ->orWhere('description', 'like', "%{$search}%")
+          ->orWhere('breakers', 'like', "%{$search}%")
+          // Integer fields - cast to string for LIKE comparison
+          ->orWhere(DB::raw('CAST(amperage AS CHAR)'), 'like', "%{$search}%");
       });
     }
 
@@ -488,8 +503,69 @@ class AdminProductController extends Controller
     $sortBy = $request->get('sort_by', 'id');
     $sortOrder = $request->get('sort_order', 'desc');
 
-    // Validate sort column
-    $allowedSortColumns = ['id', 'product_type', 'unit_id', 'hold_status', 'hold_branch', 'salesman', 'created_at'];
+    // Validate sort column - allow all product fields to be sortable
+    $allowedSortColumns = [
+      'id',
+      'product_type',
+      'unit_id',
+      'hold_status',
+      'hold_branch',
+      'salesman',
+      'opportunity_name',
+      'hold_expiration_date',
+      'brand',
+      'model_number',
+      'est_completion_date',
+      'total_cost',
+      'tariff_cost',
+      'retail_cost',
+      'sales_order_number',
+      'ipas_cpq_number',
+      'cps_po_number',
+      'ship_date',
+      'voltage',
+      'phase',
+      'enclosure',
+      'enclosure_type',
+      'tank',
+      'controller_series',
+      'breakers',
+      'serial_number',
+      'notes',
+      'tech_spec',
+      'location',
+      'description',
+      'date_hold_added',
+      // Generators specific
+      'application_group',
+      'engine_model',
+      'unit_specification',
+      'ibc_certification',
+      'exhaust_emissions',
+      'temp_rise',
+      'fuel_type',
+      'power',
+      'engine_speed',
+      'radiator_design_temp',
+      'frequency',
+      'full_load_amps',
+      // Switch specific
+      'transition_type',
+      'bypass_isolation',
+      'service_entrance_rated',
+      'contactor_type',
+      'controller_model',
+      'communications_type',
+      'accessories',
+      'catalog_number',
+      'quote_number',
+      'number_of_poles',
+      'amperage',
+      // Docking Stations specific
+      'circuit_breaker_type',
+      'created_at',
+      'updated_at'
+    ];
     if (!in_array($sortBy, $allowedSortColumns)) {
       $sortBy = 'id';
     }
