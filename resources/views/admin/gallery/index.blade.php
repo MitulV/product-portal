@@ -137,6 +137,26 @@
                         </div>
                     </div>
 
+                    <!-- Thumbnail Upload Section (1 per product, shown on client product cards) -->
+                    <div class="border-t border-slate-200 pt-6">
+                        <h3 class="text-md font-semibold text-slate-900 mb-3">Thumbnail</h3>
+                        <div class="space-y-3">
+                            <input type="file" accept="image/*" @change="handleThumbnailChange" name="thumbnail"
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border-slate-300" />
+                            <p class="text-xs text-slate-500">
+                                One image per product. Used on the client home page for each product card. Max 10MB.
+                            </p>
+
+                            <div x-show="thumbnailFile" class="text-sm text-slate-600 space-y-1">
+                                <div class="text-xs"
+                                    :class="thumbnailFile && thumbnailFile.size > 10 * 1024 * 1024 ? 'text-red-600 font-semibold' : 'text-slate-500'">
+                                    <span x-text="thumbnailFile ? thumbnailFile.name + ' (' + (thumbnailFile.size / 1024 / 1024).toFixed(2) + ' MB)' : ''"></span>
+                                    <span x-show="thumbnailFile && thumbnailFile.size > 10 * 1024 * 1024"> - File too large! Maximum is 10MB.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- General Form Errors -->
                     <div x-show="validationErrors.files || serverErrors.message"
                         class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 text-sm">
@@ -166,7 +186,7 @@
                             <div
                                 class="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition">
                                 <div class="flex items-center gap-4 flex-1">
-                                    @if ($gallery->file_type === 'image')
+                                    @if ($gallery->file_type === 'image' || $gallery->file_type === 'thumbnail')
                                         <div
                                             class="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
                                             <img src="{{ $gallery->file_url }}" alt="{{ $gallery->file_name }}"
@@ -232,7 +252,7 @@
                                         </div>
                                         <div class="text-sm text-slate-600">{{ $gallery->file_name }}</div>
                                         <div class="text-xs text-slate-500 mt-1">
-                                            {{ $gallery->file_type === 'image' ? 'Image' : 'Document' }} •
+                                            {{ $gallery->file_type === 'image' ? 'Image' : ($gallery->file_type === 'thumbnail' ? 'Thumbnail' : 'Document') }} •
                                             Uploaded {{ $gallery->created_at->format('M d, Y') }}
                                         </div>
                                     </div>
@@ -304,6 +324,7 @@
                 selectedProducts: [],
                 imageFiles: [],
                 documentFiles: [],
+                thumbnailFile: null,
                 searchQuery: '',
                 isOpen: false,
                 validationErrors: {},
@@ -380,6 +401,12 @@
                         delete this.serverErrors.message;
                     }
                 },
+                handleThumbnailChange(event) {
+                    const file = event.target.files && event.target.files[0];
+                    this.thumbnailFile = file || null;
+                    if (this.validationErrors.files) delete this.validationErrors.files;
+                    if (this.serverErrors.message) delete this.serverErrors.message;
+                },
                 handleSubmit(event) {
                     console.log('=== Gallery Upload: Form Submit Started ===');
                     this.validationErrors = {};
@@ -392,7 +419,8 @@
                         imageFiles: this.imageFiles,
                         imageFilesCount: this.imageFiles.length,
                         documentFiles: this.documentFiles,
-                        documentFilesCount: this.documentFiles.length
+                        documentFilesCount: this.documentFiles.length,
+                        thumbnailFile: this.thumbnailFile ? this.thumbnailFile.name : null
                     });
 
                     if (this.selectedProducts.length === 0) {
@@ -406,14 +434,17 @@
                     const form = event.target;
                     const imageInput = form.querySelector('input[name="images[]"]');
                     const documentInput = form.querySelector('input[name="documents[]"]');
+                    const thumbnailInput = form.querySelector('input[name="thumbnail"]');
 
                     console.log('File Inputs Found:', {
                         imageInput: imageInput ? 'Found' : 'NOT FOUND',
                         documentInput: documentInput ? 'Found' : 'NOT FOUND',
+                        thumbnailInput: thumbnailInput ? 'Found' : 'NOT FOUND',
                         imageInputFiles: imageInput ? (imageInput.files ? imageInput.files
                             .length : 'no files property') : 'N/A',
                         documentInputFiles: documentInput ? (documentInput.files ? documentInput
-                            .files.length : 'no files property') : 'N/A'
+                            .files.length : 'no files property') : 'N/A',
+                        thumbnailFile: thumbnailInput && thumbnailInput.files && thumbnailInput.files[0] ? thumbnailInput.files[0].name : 'N/A'
                     });
 
                     if (imageInput && imageInput.files) {
@@ -441,6 +472,7 @@
                     const hasImages = imageInput && imageInput.files && imageInput.files.length > 0;
                     const hasDocuments = documentInput && documentInput.files && documentInput.files
                         .length > 0;
+                    const hasThumbnail = thumbnailInput && thumbnailInput.files && thumbnailInput.files.length > 0 && thumbnailInput.files[0];
 
                     // Check for files that are too large (10MB limit)
                     const maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
@@ -466,6 +498,12 @@
                         });
                     }
 
+                    if (hasThumbnail && thumbnailInput.files[0].size > maxFileSize) {
+                        oversizedFiles.push(
+                            `Thumbnail "${thumbnailInput.files[0].name}" (${(thumbnailInput.files[0].size / 1024 / 1024).toFixed(2)} MB)`
+                        );
+                    }
+
                     if (oversizedFiles.length > 0) {
                         console.error('Validation failed: Files too large', oversizedFiles);
                         event.preventDefault();
@@ -478,21 +516,19 @@
                     console.log('File Validation Check:', {
                         hasImages: hasImages,
                         hasDocuments: hasDocuments,
-                        willPreventSubmit: !hasImages && !hasDocuments
+                        hasThumbnail: hasThumbnail,
+                        willPreventSubmit: !hasImages && !hasDocuments && !hasThumbnail
                     });
 
-                    if (!hasImages && !hasDocuments) {
+                    if (!hasImages && !hasDocuments && !hasThumbnail) {
                         console.error('Validation failed: No files selected', {
                             imageInputExists: !!imageInput,
                             documentInputExists: !!documentInput,
-                            imageInputFilesLength: imageInput ? (imageInput.files ? imageInput
-                                .files.length : 'no files') : 'no input',
-                            documentInputFilesLength: documentInput ? (documentInput.files ?
-                                documentInput.files.length : 'no files') : 'no input'
+                            thumbnailInputExists: !!thumbnailInput
                         });
                         event.preventDefault();
                         this.validationErrors.files =
-                            'Please select at least one image or document to upload.';
+                            'Please select at least one image, document, or thumbnail to upload.';
                         return;
                     }
 
@@ -521,6 +557,7 @@
                         productIds: formData.getAll('product_ids[]'),
                         imageFiles: formData.getAll('images[]').length,
                         documentFiles: formData.getAll('documents[]').length,
+                        thumbnail: formData.get('thumbnail') ? 'present' : 'absent',
                         allKeys: Array.from(formData.keys())
                     });
 

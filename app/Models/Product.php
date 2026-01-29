@@ -82,6 +82,12 @@ class Product extends Model
         return $this->hasMany(ProductGallery::class);
     }
 
+    /** Thumbnail shown on client product cards (one per product) */
+    public function thumbnail()
+    {
+        return $this->hasOne(ProductGallery::class)->where('file_type', 'thumbnail');
+    }
+
     /**
      * Get public fields for the product type
      * Based on the data dictionary: Public fields are shown to customers, Private fields are not

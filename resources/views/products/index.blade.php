@@ -99,6 +99,13 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach($products as $product)
             <div class="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                @if($product->thumbnail && $product->thumbnail->file_url)
+                <a href="{{ route('products.show', $product) }}" class="block aspect-[16/10] bg-slate-100 overflow-hidden">
+                    <img src="{{ $product->thumbnail->file_url }}" alt="{{ $product->unit_id ?? 'Product' }}"
+                        class="w-full h-full object-cover hover:scale-[1.02] transition-transform duration-200"
+                        loading="lazy" />
+                </a>
+                @endif
                 <div class="p-6">
                     <div class="flex items-start justify-between mb-4">
                         <div>

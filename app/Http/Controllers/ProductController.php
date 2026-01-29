@@ -50,7 +50,7 @@ class ProductController extends Controller
 
         $query->orderBy($sortBy, $sortOrder);
 
-        $products = $query->paginate(12)->appends($request->query());
+        $products = $query->with('thumbnail')->paginate(12)->appends($request->query());
 
         // Get unique voltage values for filter dropdown
         $availableVoltages = Product::query()

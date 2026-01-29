@@ -37,6 +37,7 @@ class AdminGalleryController extends Controller
       'product_ids_count' => count($request->input('product_ids', [])),
       'has_images' => $request->hasFile('images'),
       'has_documents' => $request->hasFile('documents'),
+      'has_thumbnail' => $request->hasFile('thumbnail'),
       'all_files_keys' => array_keys($request->allFiles()),
       'all_input_keys' => array_keys($request->all()),
       'images_count' => $request->hasFile('images') ? count($request->file('images')) : 0,
@@ -214,6 +215,8 @@ class AdminGalleryController extends Controller
       ]);
     }
 
+    $thumbnail = $request->hasFile('thumbnail') ? $request->file('thumbnail') : null;
+
     try {
       // Validate product_ids first
       $validated = $request->validate([
@@ -237,6 +240,10 @@ class AdminGalleryController extends Controller
         $documents = $allFiles['documents'];
       } elseif (!$documents && $request->hasFile('documents')) {
         $documents = $request->file('documents');
+      }
+
+      if (!$thumbnail && $request->hasFile('thumbnail')) {
+        $thumbnail = $request->file('thumbnail');
       }
 
       // Filter out invalid files (empty paths, invalid uploads)
@@ -288,6 +295,20 @@ class AdminGalleryController extends Controller
         $documents = !empty($validDocuments) ? (count($validDocuments) === 1 ? $validDocuments[0] : $validDocuments) : null;
       }
 
+      // Validate thumbnail if present (single image file)
+      $hasThumbnail = false;
+      if ($thumbnail && $thumbnail instanceof \Illuminate\Http\UploadedFile) {
+        try {
+          if ($thumbnail->isValid() && $thumbnail->getPath() !== '' && $thumbnail->getPathname() !== '') {
+            if ($thumbnail->getMimeType() && str_starts_with($thumbnail->getMimeType(), 'image/') && $thumbnail->getSize() <= 10240 * 1024) {
+              $hasThumbnail = true;
+            }
+          }
+        } catch (\Exception $e) {
+          // leave hasThumbnail false
+        }
+      }
+
       // Check if at least one valid file is provided
       $hasImages = $images !== null;
       $hasDocuments = $documents !== null;
@@ -295,12 +316,13 @@ class AdminGalleryController extends Controller
       Log::info('Gallery upload - File validation check after filtering', [
         'has_images' => $hasImages,
         'has_documents' => $hasDocuments,
-        'will_fail' => !$hasImages && !$hasDocuments,
+        'has_thumbnail' => $hasThumbnail,
+        'will_fail' => !$hasImages && !$hasDocuments && !$hasThumbnail,
         'images_count' => $hasImages ? (is_array($images) ? count($images) : 1) : 0,
         'documents_count' => $hasDocuments ? (is_array($documents) ? count($documents) : 1) : 0,
       ]);
 
-      if (!$hasImages && !$hasDocuments) {
+      if (!$hasImages && !$hasDocuments && !$hasThumbnail) {
         // Check if files were provided but filtered out due to errors
         $fileErrors = [];
         if (isset($allFiles['images'])) {
@@ -349,9 +371,21 @@ class AdminGalleryController extends Controller
 
         $errorMessage = !empty($fileErrors)
           ? implode(' ', $fileErrors)
-          : 'Please select at least one image or document to upload.';
+          : 'Please select at least one image, document, or thumbnail to upload.';
 
         return back()->withErrors(['files' => $errorMessage])->with('error', $errorMessage);
+      }
+
+      if ($hasThumbnail) {
+        if (!$thumbnail->isValid()) {
+          throw new \Exception("Thumbnail file is invalid: " . $thumbnail->getErrorMessage());
+        }
+        if (!$thumbnail->getMimeType() || !str_starts_with($thumbnail->getMimeType(), 'image/')) {
+          throw new \Exception("Thumbnail must be an image file.");
+        }
+        if ($thumbnail->getSize() > 10240 * 1024) {
+          throw new \Exception("Thumbnail exceeds 10MB limit.");
+        }
       }
 
       // Validate files separately if they exist
@@ -539,6 +573,65 @@ class AdminGalleryController extends Controller
               'trace' => $e->getTraceAsString(),
             ]);
           }
+        }
+      }
+    }
+
+    // Handle thumbnail (one per product; replace existing thumbnail for each selected product)
+    $firstStoredThumbnailPath = null;
+    if ($hasThumbnail && $thumbnail) {
+      foreach ($validated['product_ids'] as $index => $productId) {
+        try {
+          $product = Product::findOrFail($productId);
+          $unitId = $product->unit_id;
+
+          // Remove existing thumbnail for this product so only one remains
+          ProductGallery::where('product_id', $productId)->where('file_type', 'thumbnail')->each(function ($g) {
+            $filePath = str_replace('/storage/', '', $g->file_url);
+            if (Storage::disk('public')->exists($filePath)) {
+              Storage::disk('public')->delete($filePath);
+            }
+            $g->delete();
+          });
+
+          $extension = $thumbnail->getClientOriginalExtension();
+          $safeUnitId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $unitId);
+          $fileName = $safeUnitId . '_thumbnail.' . $extension;
+          $directory = 'thumbnails/' . $safeUnitId;
+          if (!Storage::disk('public')->exists($directory)) {
+            Storage::disk('public')->makeDirectory($directory, 0755, true);
+          }
+
+          if ($index === 0) {
+            $path = $thumbnail->storeAs($directory, $fileName, 'public');
+            if (!$path) {
+              throw new \Exception("Failed to store thumbnail: {$fileName}");
+            }
+            $firstStoredThumbnailPath = $path;
+          } else {
+            $path = $directory . '/' . $fileName;
+            Storage::disk('public')->copy($firstStoredThumbnailPath, $path);
+          }
+
+          ProductGallery::create([
+            'product_id' => $productId,
+            'file_url' => Storage::url($path),
+            'file_type' => 'thumbnail',
+            'file_name' => $fileName,
+          ]);
+
+          $uploadedFiles[] = [
+            'product' => $product->unit_id,
+            'file' => $fileName,
+            'type' => 'thumbnail',
+          ];
+        } catch (\Exception $e) {
+          $errors["thumbnail.{$productId}"] = $e->getMessage();
+          Log::error('Thumbnail upload error', [
+            'product_id' => $productId,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+          ]);
         }
       }
     }
