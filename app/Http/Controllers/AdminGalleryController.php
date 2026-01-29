@@ -16,7 +16,7 @@ class AdminGalleryController extends Controller
       ->orderBy('unit_id')
       ->get();
 
-    $galleries = ProductGallery::with('product:id,unit_id')
+    $galleries = ProductGallery::with(['product:id,unit_id', 'currentProduct:id,unit_id'])
       ->orderBy('created_at', 'desc')
       ->paginate(20);
 
@@ -480,9 +480,10 @@ class AdminGalleryController extends Controller
               throw new \Exception("Failed to store image file: {$fileName}");
             }
 
-            // Save to database
+            // Save to database (unit_id = Stock ID so gallery stays linked after Excel import)
             $gallery = ProductGallery::create([
               'product_id' => $productId,
+              'unit_id' => $unitId,
               'file_url' => Storage::url($path),
               'file_type' => 'image',
               'file_name' => $fileName,
@@ -548,9 +549,10 @@ class AdminGalleryController extends Controller
               throw new \Exception("Failed to store document file: {$fileName}");
             }
 
-            // Save to database
+            // Save to database (unit_id = Stock ID so gallery stays linked after Excel import)
             $gallery = ProductGallery::create([
               'product_id' => $productId,
+              'unit_id' => $unitId,
               'file_url' => Storage::url($path),
               'file_type' => 'document',
               'file_name' => $fileName,
@@ -615,6 +617,7 @@ class AdminGalleryController extends Controller
 
           ProductGallery::create([
             'product_id' => $productId,
+            'unit_id' => $unitId,
             'file_url' => Storage::url($path),
             'file_type' => 'thumbnail',
             'file_name' => $fileName,

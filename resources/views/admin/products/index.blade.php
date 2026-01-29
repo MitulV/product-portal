@@ -650,6 +650,24 @@
                                 </div>
                             </div>
                         </th>
+                        <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
+                            @click="handleSort('kw')">
+                            <div class="flex items-center gap-2">
+                                <span>Kw</span>
+                                <div class="flex flex-col items-center justify-center min-w-[16px]">
+                                    <span x-show="sortBy === 'kw'" class="text-blue-600 font-bold text-sm"
+                                        x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    <span x-show="sortBy !== 'kw'"
+                                        class="text-slate-300 group-hover:text-slate-500 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -701,11 +719,13 @@
                                     {{ $product->notes ?? '-' }}</td>
                                 <td class="px-4 py-3 max-w-xs truncate" title="{{ $product->tech_spec ?? '' }}">
                                     {{ $product->tech_spec ?? '-' }}</td>
+                                <td class="px-4 py-3">{{ $product->kw !== null ? number_format($product->kw, 2) : '-' }}
+                                </td>
                             </tr>
                         @endforeach
                     @else
                         <tr>
-                            <td colspan="27" class="px-6 py-12 text-center text-slate-400">
+                            <td colspan="28" class="px-6 py-12 text-center text-slate-400">
                                 No products found.
                             </td>
                         </tr>
@@ -1135,6 +1155,7 @@
                                     tariff_cost: (row) => parseNumeric(row[39]),
                                     sales_order_number: (row) => parseIntegerAsString(row[
                                         40]),
+                                    kw: (row) => parseNumeric(row[41]),
                                 };
                                 allProducts = allProducts.concat(parseSheet('Generators',
                                     'Generators', generatorsMapping));

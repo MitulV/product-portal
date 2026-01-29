@@ -164,6 +164,7 @@ class GeneratorsImport implements ToModel, WithStartRow, WithValidation
       'retail_cost' => $this->transformNumeric($row[38] ?? null),
       'tariff_cost' => $this->transformNumeric($row[39] ?? null),
       'sales_order_number' => $this->transformInteger($row[40] ?? null),
+      'kw' => $this->transformNumeric($row[41] ?? null),
     ]);
   }
 

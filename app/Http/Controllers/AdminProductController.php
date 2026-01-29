@@ -75,6 +75,7 @@ class AdminProductController extends Controller
         'products.*.radiator_design_temp' => 'nullable|integer',
         'products.*.frequency' => 'nullable|integer',
         'products.*.full_load_amps' => 'nullable|integer',
+        'products.*.kw' => 'nullable|numeric',
         // Switch specific
         'products.*.transition_type' => 'nullable|string|max:8',
         'products.*.bypass_isolation' => 'nullable|string|max:24',
@@ -242,6 +243,7 @@ class AdminProductController extends Controller
             'radiator_design_temp',
             'frequency',
             'full_load_amps',
+            'kw',
             // Switch specific
             'transition_type',
             'bypass_isolation',
@@ -278,7 +280,7 @@ class AdminProductController extends Controller
               }
             }
             // Process numeric/decimal fields
-            elseif (in_array($field, ['total_cost', 'tariff_cost', 'retail_cost'])) {
+            elseif (in_array($field, ['total_cost', 'tariff_cost', 'retail_cost', 'kw'])) {
               if ($value === '' || $value === null) {
                 $value = null;
               } elseif (is_numeric($value)) {
@@ -549,6 +551,7 @@ class AdminProductController extends Controller
       'radiator_design_temp',
       'frequency',
       'full_load_amps',
+      'kw',
       // Switch specific
       'transition_type',
       'bypass_isolation',

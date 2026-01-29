@@ -39,8 +39,8 @@
                         <div class="font-semibold text-slate-900">
                             @if (in_array($field, ['est_completion_date', 'ship_date']) && $product->$field)
                                 {{ $product->$field->format('M d, Y') }}
-                            @elseif (in_array($field, ['power', 'engine_speed', 'radiator_design_temp', 'frequency', 'full_load_amps', 'amperage']))
-                                {{ number_format($product->$field) }}
+                            @elseif (in_array($field, ['power', 'engine_speed', 'radiator_design_temp', 'frequency', 'full_load_amps', 'amperage', 'kw']))
+                                {{ $field === 'kw' ? number_format($product->$field, 2) : number_format($product->$field) }}
                             @elseif ($field === 'tech_spec' && filter_var($product->$field, FILTER_VALIDATE_URL))
                                 <a href="{{ $product->$field }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
                                     View Tech Spec

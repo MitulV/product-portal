@@ -102,19 +102,20 @@ class GenerateSampleExcel extends Command
       'Total Cost',
       'Retail Cost',
       'Tariff (Included in Total Cost)',
-      'Sales Order #'
+      'Sales Order #',
+      'Kw'
     ];
 
     // Set headers in row 1
     $sheet->fromArray([$headers], null, 'A1');
 
-    // Style header row
+    // Style header row (A1:AP1 = columns A through AP, 42 columns)
     $headerStyle = [
       'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
       'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
       'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
     ];
-    $sheet->getStyle('A1:AN1')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:AP1')->applyFromArray($headerStyle);
 
     // Sample data rows (starting from row 2) - only if not template
     if (!$isTemplate) {
@@ -160,7 +161,8 @@ class GenerateSampleExcel extends Command
           125000.00,
           135000.00,
           5000.00,
-          1336998
+          1336998,
+          2000
         ],
         [
           'Hold',
@@ -203,7 +205,8 @@ class GenerateSampleExcel extends Command
           185000.00,
           200000.00,
           8000.00,
-          1336999
+          1336999,
+          3000
         ],
       ];
 
@@ -214,8 +217,8 @@ class GenerateSampleExcel extends Command
       }
     }
 
-    // Auto-size columns (A to AN = 40 columns)
-    for ($col = 0; $col < 40; $col++) {
+    // Auto-size columns (A to AP = 42 columns)
+    for ($col = 0; $col < 42; $col++) {
       $sheet->getColumnDimensionByColumn($col + 1)->setAutoSize(true);
     }
   }

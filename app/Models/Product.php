@@ -51,6 +51,7 @@ class Product extends Model
         'radiator_design_temp',
         'frequency',
         'full_load_amps',
+        'kw',
         // Switch specific
         'transition_type',
         'bypass_isolation',
@@ -75,17 +76,19 @@ class Product extends Model
         'total_cost' => 'decimal:2',
         'tariff_cost' => 'decimal:2',
         'retail_cost' => 'decimal:2',
+        'kw' => 'decimal:2',
     ];
 
+    /** Gallery items linked by Stock ID so they survive Excel import / product refresh. */
     public function galleries()
     {
-        return $this->hasMany(ProductGallery::class);
+        return $this->hasMany(ProductGallery::class, 'unit_id', 'unit_id');
     }
 
-    /** Thumbnail shown on client product cards (one per product) */
+    /** Thumbnail shown on client product cards (one per product), linked by Stock ID. */
     public function thumbnail()
     {
-        return $this->hasOne(ProductGallery::class)->where('file_type', 'thumbnail');
+        return $this->hasOne(ProductGallery::class, 'unit_id', 'unit_id')->where('file_type', 'thumbnail');
     }
 
     /**
@@ -100,7 +103,7 @@ class Product extends Model
                 'controller_series', 'breakers', 'application_group', 'engine_model',
                 'unit_specification', 'ibc_certification', 'exhaust_emissions', 'temp_rise',
                 'description', 'fuel_type', 'voltage', 'phase', 'unit_id', 'power',
-                'engine_speed', 'radiator_design_temp', 'frequency', 'full_load_amps',
+                'engine_speed', 'radiator_design_temp', 'frequency', 'full_load_amps', 'kw',
                 'est_completion_date', 'ship_date'
             ],
             'Switch' => [
@@ -159,6 +162,7 @@ class Product extends Model
             'radiator_design_temp' => 'Radiator Design Temp',
             'frequency' => 'Frequency',
             'full_load_amps' => 'Full Load Amps',
+            'kw' => 'Kw',
             'tech_spec' => 'Tech Spec',
             'est_completion_date' => 'Est. Completion Date',
             'ship_date' => 'Ship Date',
