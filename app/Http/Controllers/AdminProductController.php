@@ -61,6 +61,7 @@ class AdminProductController extends Controller
         'products.*.breakers' => 'nullable|string|max:255',
         'products.*.notes' => 'nullable|string',
         'products.*.description' => 'nullable|string',
+        'products.*.title' => 'nullable|string|max:255',
         'products.*.tech_spec' => 'nullable|string',
         // Generators specific
         'products.*.application_group' => 'nullable|string|max:255',
@@ -229,6 +230,7 @@ class AdminProductController extends Controller
             'unit_id',
             'notes',
             'description',
+            'title',
             'tech_spec',
             // Generators specific
             'application_group',
@@ -496,8 +498,10 @@ class AdminProductController extends Controller
           ->orWhere('transition_type', 'like', "%{$search}%")
           ->orWhere('description', 'like', "%{$search}%")
           ->orWhere('breakers', 'like', "%{$search}%")
-          // Integer fields - cast to string for LIKE comparison
-          ->orWhere(DB::raw('CAST(amperage AS CHAR)'), 'like', "%{$search}%");
+          ->orWhere('title', 'like', "%{$search}%")
+          // Numeric/integer fields - cast to string for LIKE comparison
+          ->orWhere(DB::raw('CAST(amperage AS CHAR)'), 'like', "%{$search}%")
+          ->orWhere(DB::raw('CAST(kw AS CHAR)'), 'like', "%{$search}%");
       });
     }
 

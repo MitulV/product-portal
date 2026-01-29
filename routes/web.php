@@ -5,8 +5,10 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::get('/', [\App\Http\Controllers\ProductController::class, 'index'])->name('home');
 Route::get('/products', [\App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
-Route::get('/products/{product}', [\App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
+// Inquiry before show so /products/14/inquiry is not captured as slug
 Route::get('/products/{product}/inquiry', [\App\Http\Controllers\ProductController::class, 'inquiry'])->name('products.inquiry');
+// Pretty URL: /products/14 or /products/14/mtu/500kw/480v/enclosure
+Route::get('/products/{product}/{brand?}/{kw?}/{voltage?}/{enclosure?}', [\App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
 Route::post('/products/{product}/inquiry', [\App\Http\Controllers\ProductController::class, 'submitInquiry'])->name('products.inquiry.submit');
 
 Route::redirect('/admin', '/admin/dashboard');

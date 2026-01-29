@@ -313,6 +313,7 @@ class OtherImport implements ToModel, WithStartRow, WithValidation
       'date_hold_added' => $this->transformDate($row[9] ?? null),
       'retail_cost' => $this->transformNumeric($row[10] ?? null),
       'total_cost' => $this->transformNumeric($row[11] ?? null),
+      'title' => $this->cleanValue($row[12] ?? null),
     ]);
   }
 

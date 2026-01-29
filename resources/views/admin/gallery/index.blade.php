@@ -250,7 +250,7 @@
                                         <div class="font-medium text-slate-900">
                                             {{ $gallery->unit_id ?? $gallery->product?->unit_id ?? 'Unknown Product' }}
                                             @if($gallery->currentProduct)
-                                                <a href="{{ route('products.show', $gallery->currentProduct) }}" class="ml-2 text-blue-600 hover:text-blue-800 text-xs">View product</a>
+                                                <a href="{{ route('products.show', $gallery->currentProduct->showRouteParameters()) }}" class="ml-2 text-blue-600 hover:text-blue-800 text-xs">View product</a>
                                             @endif
                                         </div>
                                         <div class="text-sm text-slate-600">{{ $gallery->file_name }}</div>

@@ -470,18 +470,19 @@ class GenerateSampleExcel extends Command
       'Hold Expiration',
       'Date Hold Added',
       'Retail Cost',
-      'Total Cost'
+      'Total Cost',
+      'Title'
     ];
 
     $sheet->fromArray([$headers], null, 'A1');
 
-    // Style header row
+    // Style header row (A1:M1 = 13 columns)
     $headerStyle = [
       'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
       'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
       'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
     ];
-    $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:M1')->applyFromArray($headerStyle);
 
     // Sample data - only if not template
     if (!$isTemplate) {
@@ -498,7 +499,8 @@ class GenerateSampleExcel extends Command
           '2024-12-31',
           '2024-01-25',
           5000.00,
-          6000.00
+          6000.00,
+          'Accessory Kit'
         ],
         [
           'Hold',
@@ -512,7 +514,8 @@ class GenerateSampleExcel extends Command
           '2025-03-31',
           '2024-02-10',
           3500.00,
-          4200.00
+          4200.00,
+          'Control Panel'
         ],
       ];
 
@@ -523,8 +526,8 @@ class GenerateSampleExcel extends Command
       }
     }
 
-    // Auto-size columns (A to L = 12 columns)
-    for ($col = 0; $col < 12; $col++) {
+    // Auto-size columns (A to M = 13 columns)
+    for ($col = 0; $col < 13; $col++) {
       $sheet->getColumnDimensionByColumn($col + 1)->setAutoSize(true);
     }
   }

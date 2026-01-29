@@ -719,7 +719,7 @@
                                     {{ $product->notes ?? '-' }}</td>
                                 <td class="px-4 py-3 max-w-xs truncate" title="{{ $product->tech_spec ?? '' }}">
                                     {{ $product->tech_spec ?? '-' }}</td>
-                                <td class="px-4 py-3">{{ $product->kw !== null ? number_format($product->kw, 2) : '-' }}
+                                <td class="px-4 py-3">{{ $product->kw !== null ? (string) (int) round($product->kw, 0) . ' Kw' : '-' }}
                                 </td>
                             </tr>
                         @endforeach
@@ -1235,6 +1235,7 @@
                                     date_hold_added: (row) => parseDate(row[9]),
                                     retail_cost: (row) => parseNumeric(row[10]),
                                     total_cost: (row) => parseNumeric(row[11]),
+                                    title: (row) => cleanValue(row[12]),
                                 };
                                 allProducts = allProducts.concat(parseSheet('Other', 'Other',
                                     otherMapping));

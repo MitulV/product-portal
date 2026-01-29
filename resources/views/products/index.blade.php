@@ -3,7 +3,7 @@
 @section('title', 'Power Generation Equipment - PowerGen')
 
 @section('content')
-<div x-data="{ search: '{{ $filters['search'] ?? '' }}', voltage: '{{ $filters['voltage'] ?? '' }}' }">
+<div x-data="{ search: '{{ $filters['search'] ?? '' }}', voltage: '{{ $filters['voltage'] ?? '' }}', brand: '{{ $filters['brand'] ?? '' }}', phase: '{{ $filters['phase'] ?? '' }}' }">
     <!-- Top Navigation -->
     <nav class="bg-white border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -32,7 +32,7 @@
                         type="text"
                         name="search"
                         x-model="search"
-                        placeholder="Search by Unit ID, Brand, or Model..."
+                        placeholder="Search by Kw, Brand, Model, Voltage, Tank, Enclosure, Phase, Title..."
                         class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                     />
                     @if(isset($filters['search']) && $filters['search'])
@@ -43,16 +43,52 @@
                 </div>
                 <div class="relative">
                     <select
+                        name="brand"
+                        x-model="brand"
+                        onchange="this.form.submit()"
+                        class="w-full md:w-40 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white appearance-none cursor-pointer"
+                    >
+                        <option value="">All Brands</option>
+                        @foreach($availableBrands ?? [] as $b)
+                        <option value="{{ $b }}" {{ (isset($filters['brand']) && $filters['brand'] == $b) ? 'selected' : '' }}>{{ $b }}</option>
+                        @endforeach
+                    </select>
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="relative">
+                    <select
                         name="voltage"
                         x-model="voltage"
                         onchange="this.form.submit()"
-                        class="w-full md:w-48 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white appearance-none cursor-pointer"
+                        class="w-full md:w-36 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white appearance-none cursor-pointer"
                     >
                         <option value="">All Voltages</option>
                         @foreach($availableVoltages as $volt)
                         <option value="{{ $volt }}" {{ (isset($filters['voltage']) && $filters['voltage'] == $volt) ? 'selected' : '' }}>
                             {{ $volt }}
                         </option>
+                        @endforeach
+                    </select>
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="relative">
+                    <select
+                        name="phase"
+                        x-model="phase"
+                        onchange="this.form.submit()"
+                        class="w-full md:w-32 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white appearance-none cursor-pointer"
+                    >
+                        <option value="">All Phases</option>
+                        @foreach($availablePhases ?? [] as $p)
+                        <option value="{{ $p }}" {{ (isset($filters['phase']) && $filters['phase'] == $p) ? 'selected' : '' }}>{{ $p }}</option>
                         @endforeach
                     </select>
                     <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -69,7 +105,7 @@
                 >
                     Search
                 </button>
-                @if((isset($filters['search']) && $filters['search']) || (isset($filters['voltage']) && $filters['voltage']))
+                @if((isset($filters['search']) && $filters['search']) || (isset($filters['voltage']) && $filters['voltage']) || (isset($filters['brand']) && $filters['brand']) || (isset($filters['phase']) && $filters['phase']))
                 <a
                     href="{{ route('products.index', ['sort_by' => $filters['sort_by'] ?? 'id', 'sort_order' => $filters['sort_order'] ?? 'desc']) }}"
                     class="px-6 py-3 bg-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-300 transition whitespace-nowrap"
@@ -78,14 +114,20 @@
                 </a>
                 @endif
             </form>
-            @if((isset($filters['search']) && $filters['search']) || (isset($filters['voltage']) && $filters['voltage']))
-            <div class="mt-3 text-xs text-slate-600">
-                Active filters:
+            @if((isset($filters['search']) && $filters['search']) || (isset($filters['voltage']) && $filters['voltage']) || (isset($filters['brand']) && $filters['brand']) || (isset($filters['phase']) && $filters['phase']))
+            <div class="mt-3 text-xs text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span class="font-medium">Active filters:</span>
                 @if(isset($filters['search']) && $filters['search'])
-                <span class="ml-2 font-medium">Search: "{{ $filters['search'] }}"</span>
+                <span>Search: "{{ $filters['search'] }}"</span>
+                @endif
+                @if(isset($filters['brand']) && $filters['brand'])
+                <span>Brand: {{ $filters['brand'] }}</span>
                 @endif
                 @if(isset($filters['voltage']) && $filters['voltage'])
-                <span class="ml-2 font-medium">Voltage: {{ $filters['voltage'] }}</span>
+                <span>Voltage: {{ $filters['voltage'] }}</span>
+                @endif
+                @if(isset($filters['phase']) && $filters['phase'])
+                <span>Phase: {{ $filters['phase'] }}</span>
                 @endif
             </div>
             @endif
@@ -100,7 +142,7 @@
             @foreach($products as $product)
             <div class="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                 @if($product->thumbnail && $product->thumbnail->file_url)
-                <a href="{{ route('products.show', $product) }}" class="block aspect-[16/10] bg-slate-100 overflow-hidden">
+                <a href="{{ route('products.show', $product->showRouteParameters()) }}" class="block aspect-[16/10] bg-slate-100 overflow-hidden">
                     <img src="{{ $product->thumbnail->file_url }}" alt="{{ $product->unit_id ?? 'Product' }}"
                         class="w-full h-full object-cover hover:scale-[1.02] transition-transform duration-200"
                         loading="lazy" />
@@ -108,13 +150,10 @@
                 @endif
                 <div class="p-6">
                     <div class="flex items-start justify-between mb-4">
-                        <div>
+                        <div class="flex-1 min-w-0">
                             <h3 class="text-lg font-bold text-slate-900 mb-1">
-                                {{ $product->unit_id ?? "Product #{$product->id}" }}
+                                {{ $product->card_title }}
                             </h3>
-                            @if($product->brand)
-                            <p class="text-sm text-slate-600">{{ $product->brand }}</p>
-                            @endif
                         </div>
                         @if($product->hold_status)
                         <span class="px-2 py-1 rounded text-xs font-medium {{ $product->hold_status === 'Hold' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
@@ -151,7 +190,7 @@
                     </div>
 
                     <a
-                        href="{{ route('products.show', $product) }}"
+                        href="{{ route('products.show', $product->showRouteParameters()) }}"
                         class="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
                     >
                         View Details
