@@ -39,7 +39,8 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
+            // Only set scheme when MAIL_SCHEME is a real value; otherwise Laravel uses port (465 -> smtps)
+            'scheme' => in_array(env('MAIL_SCHEME'), ['smtp', 'smtps'], true) ? env('MAIL_SCHEME') : null,
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),

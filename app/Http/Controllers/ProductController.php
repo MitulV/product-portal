@@ -131,11 +131,7 @@ class ProductController extends Controller
     ]);
 
     try {
-      // Send email to configured address(es); multiple emails supported (comma-separated in INQUIRY_EMAIL)
-      $toEmails = array_filter(array_map('trim', explode(',', env('INQUIRY_EMAIL', ''))));
-      if (empty($toEmails)) {
-        $toEmails = [config('mail.from.address')];
-      }
+      $toEmails = ['nlandon@curtisps.com', 'jfalcone@curtisps.com'];
 
       Mail::send([], [], function ($message) use ($validated, $product, $toEmails) {
         $message->to($toEmails)
