@@ -103,7 +103,7 @@ class GenerateSampleExcel extends Command
       'Retail Cost',
       'Tariff (Included in Total Cost)',
       'Sales Order #',
-      'Kw'
+      'kW'
     ];
 
     // Set headers in row 1

@@ -93,7 +93,7 @@ class Product extends Model
   }
 
   /**
-   * Main-page product card title by type: Brand - Kw/Amperage/Title - Product Type.
+   * Main-page product card title by type: Brand - kW/Amperage/Title - Product Type.
    */
   public function getCardTitleAttribute(): string
   {
@@ -101,7 +101,7 @@ class Product extends Model
 
     if ($this->product_type === 'Generators') {
       if ($this->kw !== null) {
-        $kwDisplay = (string) (int) round($this->kw, 0) . ' Kw';
+        $kwDisplay = (string) (int) round($this->kw, 0) . ' kW';
         return "{$brand} - {$kwDisplay} - Generator";
       }
       return "{$brand} - Generator";
@@ -139,31 +139,58 @@ class Product extends Model
   }
 
   /**
-   * Route parameters for products.show: id + optional brand/kw/voltage/enclosure for pretty URLs.
-   * e.g. /products/14/mtu/500kw/480v/enclosure
+   * Product type as URL slug (e.g. Generators -> generator).
+   */
+  public function getProductTypeSlug(): string
+  {
+    $map = [
+      'Generators' => 'generator',
+      'Switch' => 'transfer-switch',
+      'Docking Stations' => 'docking-station',
+      'Other' => 'other',
+    ];
+    return $map[$this->product_type] ?? self::slugify($this->product_type);
+  }
+
+  /**
+   * Single hyphenated slug for pretty URL: product-type-brand-kw-voltage-enclosure.
+   * e.g. generator-mtu-100kw-480v-lvl3
+   */
+  public function getShowSlug(): string
+  {
+    $parts = [];
+    $parts[] = $this->getProductTypeSlug();
+    $brand = self::slugify($this->brand);
+    if ($brand !== '') {
+      $parts[] = $brand;
+    }
+    if ($this->kw !== null) {
+      $parts[] = (string) (int) round($this->kw, 0) . 'kw';
+    }
+    if ($this->voltage !== null && (string) $this->voltage !== '') {
+      $v = preg_replace('/\D/', '', (string) $this->voltage);
+      if ($v !== '') {
+        $parts[] = $v . 'v';
+      }
+    }
+    $enclosure = self::slugify($this->enclosure ?? $this->enclosure_type ?? null);
+    if ($enclosure !== '') {
+      $parts[] = $enclosure;
+    }
+    return implode('-', $parts);
+  }
+
+  /**
+   * Route parameters for products.show: id + optional hyphenated slug.
+   * e.g. /products/18/generator-mtu-100kw-480v-lvl3
    */
   public function showRouteParameters(): array
   {
+    $slug = $this->getShowSlug();
     $params = ['product' => $this];
-
-    $brand = self::slugify($this->brand);
-    if ($brand !== '') {
-      $params['brand'] = $brand;
+    if ($slug !== '') {
+      $params['slug'] = $slug;
     }
-
-    if ($this->kw !== null) {
-      $params['kw'] = (string) (int) round($this->kw, 0) . 'kw';
-    }
-
-    if ($this->voltage !== null && (string) $this->voltage !== '') {
-      $params['voltage'] = (string) $this->voltage . 'v';
-    }
-
-    $enclosure = self::slugify($this->enclosure ?? $this->enclosure_type ?? null);
-    if ($enclosure !== '') {
-      $params['enclosure'] = $enclosure;
-    }
-
     return $params;
   }
 
@@ -284,7 +311,7 @@ class Product extends Model
       'radiator_design_temp' => 'Radiator Design Temp',
       'frequency' => 'Frequency',
       'full_load_amps' => 'Full Load Amps',
-      'kw' => 'Kw',
+      'kw' => 'kW',
       'tech_spec' => 'Tech Spec',
       'est_completion_date' => 'Est. Completion Date',
       'ship_date' => 'Ship Date',

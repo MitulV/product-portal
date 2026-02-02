@@ -1,6 +1,6 @@
 @extends('app')
 
-@section('title', ($product->unit_id ?? 'Product') . ' - PowerGen')
+@section('title', $product->card_title . ' - PowerGen')
 
 @section('content')
     <div>

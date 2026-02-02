@@ -3,10 +3,10 @@
     <div class="flex items-start justify-between mb-6">
         <div>
             <h2 class="text-2xl font-bold text-slate-900 mb-2">
-                {{ $product->unit_id ?? "Product #{$product->id}" }}
+                {{ $product->card_title }}
             </h2>
-            @if ($product->isPublicField('brand') && $product->brand)
-                <p class="text-lg text-slate-600">{{ $product->brand }}</p>
+            @if ($product->unit_id)
+                <p class="text-lg text-slate-600">Stock ID: {{ $product->unit_id }}</p>
             @endif
         </div>
         @if ($product->hold_status && $product->hold_status !== 'Hold')
@@ -19,7 +19,7 @@
     @php
         $publicFields = $product->getPublicFields();
         $hasPublicFields = false;
-        
+
         // Check if any public fields have values
         foreach ($publicFields as $field) {
             if ($product->$field !== null && $product->$field !== '') {
@@ -39,10 +39,19 @@
                         <div class="font-semibold text-slate-900">
                             @if (in_array($field, ['est_completion_date', 'ship_date']) && $product->$field)
                                 {{ $product->$field->format('M d, Y') }}
-                            @elseif (in_array($field, ['power', 'engine_speed', 'radiator_design_temp', 'frequency', 'full_load_amps', 'amperage', 'kw']))
-                                {{ $field === 'kw' ? (string) (int) round($product->$field, 0) . ' Kw' : number_format($product->$field) }}
+                            @elseif (in_array($field, [
+                                    'power',
+                                    'engine_speed',
+                                    'radiator_design_temp',
+                                    'frequency',
+                                    'full_load_amps',
+                                    'amperage',
+                                    'kw',
+                                ]))
+                                {{ $field === 'kw' ? (string) (int) round($product->$field, 0) . ' kW' : number_format($product->$field) }}
                             @elseif ($field === 'tech_spec' && filter_var($product->$field, FILTER_VALIDATE_URL))
-                                <a href="{{ $product->$field }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
+                                <a href="{{ $product->$field }}" target="_blank"
+                                    class="text-blue-600 hover:text-blue-800 underline">
                                     View Tech Spec
                                 </a>
                             @else

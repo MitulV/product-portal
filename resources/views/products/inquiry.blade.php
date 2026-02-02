@@ -1,6 +1,6 @@
 @extends('app')
 
-@section('title', 'Request a Quote - ' . ($product->unit_id ?? 'Product #' . $product->id) . ' - PowerGen')
+@section('title', 'Request a Quote - ' . $product->card_title . ' - PowerGen')
 
 @section('content')
     <div class="min-h-screen bg-slate-50">
@@ -49,7 +49,7 @@
             <div class="mb-8">
                 <h1 class="text-3xl font-bold text-slate-900 mb-2">Request a Quote</h1>
                 <p class="text-slate-600">
-                    Product: <strong>{{ $product->unit_id ?? "Product #{$product->id}" }}</strong>
+                    Product: <strong>{{ $product->card_title }}</strong>
                 </p>
             </div>
 

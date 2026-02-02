@@ -500,8 +500,12 @@ class AdminProductController extends Controller
           ->orWhere('breakers', 'like', "%{$search}%")
           ->orWhere('title', 'like', "%{$search}%")
           // Numeric/integer fields - cast to string for LIKE comparison
-          ->orWhere(DB::raw('CAST(amperage AS CHAR)'), 'like', "%{$search}%")
-          ->orWhere(DB::raw('CAST(kw AS CHAR)'), 'like', "%{$search}%");
+          ->orWhere(DB::raw('CAST(amperage AS CHAR)'), 'like', "%{$search}%");
+        // Only match kW when user includes "kw" in query (e.g. 100kw, 100 kW, 100KW)
+        if (preg_match('/kw/i', $search) && preg_match('/(\d+(?:\.\d+)?)/', $search, $m)) {
+          $kwNum = (int) round((float) $m[1], 0);
+          $q->orWhereRaw('ROUND(kw, 0) = ?', [$kwNum]);
+        }
       });
     }
 

@@ -653,7 +653,7 @@
                         <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition select-none group"
                             @click="handleSort('kw')">
                             <div class="flex items-center gap-2">
-                                <span>Kw</span>
+                                <span>kW</span>
                                 <div class="flex flex-col items-center justify-center min-w-[16px]">
                                     <span x-show="sortBy === 'kw'" class="text-blue-600 font-bold text-sm"
                                         x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
@@ -719,7 +719,7 @@
                                     {{ $product->notes ?? '-' }}</td>
                                 <td class="px-4 py-3 max-w-xs truncate" title="{{ $product->tech_spec ?? '' }}">
                                     {{ $product->tech_spec ?? '-' }}</td>
-                                <td class="px-4 py-3">{{ $product->kw !== null ? (string) (int) round($product->kw, 0) . ' Kw' : '-' }}
+                                <td class="px-4 py-3">{{ $product->kw !== null ? (string) (int) round($product->kw, 0) . ' kW' : '-' }}
                                 </td>
                             </tr>
                         @endforeach

@@ -32,7 +32,7 @@
                         type="text"
                         name="search"
                         x-model="search"
-                        placeholder="Search by Kw, Brand, Model, Voltage, Tank, Enclosure, Phase, Title..."
+                        placeholder="Search by kW, Brand, Model, Voltage, Tank, Enclosure, Phase, Title..."
                         class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                     />
                     @if(isset($filters['search']) && $filters['search'])

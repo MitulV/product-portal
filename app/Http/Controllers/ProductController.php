@@ -13,10 +13,11 @@ class ProductController extends Controller
   {
     $baseQuery = Product::query();
 
-    // Only show available products (exclude products on hold)
+    // Only show available products (exclude products on hold – e.g. "Hold", "On hold")
     $baseQuery->where(function ($q) {
-      $q->where('hold_status', '!=', 'Hold')
-        ->orWhereNull('hold_status');
+      $q->whereNull('hold_status')
+        ->orWhere('hold_status', '')
+        ->orWhereRaw('LOWER(TRIM(hold_status)) NOT IN (?, ?)', ['hold', 'on hold']);
     });
 
     $query = clone $baseQuery;
@@ -32,11 +33,10 @@ class ProductController extends Controller
       $query->where('phase', $request->phase);
     }
 
-    // Search: kw, title, voltage, tank, brand, enclosure, phase, model (and unit_id)
+    // Search: title, voltage, tank, brand, enclosure, phase, model, unit_id; kW only when query contains "kw"
     if ($request->filled('search')) {
       $search = $request->search;
-      $kwCast = DB::connection()->getDriverName() === 'sqlite' ? 'CAST(kw AS TEXT)' : 'CAST(kw AS CHAR)';
-      $query->where(function ($q) use ($search, $kwCast) {
+      $query->where(function ($q) use ($search) {
         $q->where('unit_id', 'like', "%{$search}%")
           ->orWhere('brand', 'like', "%{$search}%")
           ->orWhere('model_number', 'like', "%{$search}%")
@@ -44,8 +44,12 @@ class ProductController extends Controller
           ->orWhere('voltage', 'like', "%{$search}%")
           ->orWhere('tank', 'like', "%{$search}%")
           ->orWhere('enclosure', 'like', "%{$search}%")
-          ->orWhere('phase', 'like', "%{$search}%")
-          ->orWhereRaw("{$kwCast} LIKE ?", ["%{$search}%"]);
+          ->orWhere('phase', 'like', "%{$search}%");
+        // Only match kW when user includes "kw" in query (e.g. 100kw, 100 kW, 100KW)
+        if (preg_match('/kw/i', $search) && preg_match('/(\d+(?:\.\d+)?)/', $search, $m)) {
+          $kwNum = (int) round((float) $m[1], 0);
+          $q->orWhereRaw('ROUND(kw, 0) = ?', [$kwNum]);
+        }
       });
     }
 
@@ -68,7 +72,9 @@ class ProductController extends Controller
 
     // Filter dropdown options (from available products only)
     $baseForFilters = Product::query()->where(function ($q) {
-      $q->where('hold_status', '!=', 'Hold')->orWhereNull('hold_status');
+      $q->whereNull('hold_status')
+        ->orWhere('hold_status', '')
+        ->orWhereRaw('LOWER(TRIM(hold_status)) NOT IN (?, ?)', ['hold', 'on hold']);
     });
     $availableVoltages = (clone $baseForFilters)->whereNotNull('voltage')->where('voltage', '!=', '')
       ->select('voltage')->distinct()->orderBy('voltage')->pluck('voltage')->filter()->values()->toArray();
@@ -95,9 +101,15 @@ class ProductController extends Controller
 
   public function show(Product $product)
   {
-    // Redirect to canonical pretty URL when visiting /products/14 and product has slug data
+    // Hide on-hold units from client: treat as not found
+    $holdStatus = $product->hold_status ? strtolower(trim($product->hold_status)) : '';
+    if (in_array($holdStatus, ['hold', 'on hold'], true)) {
+      abort(404);
+    }
+
+    // Redirect to canonical pretty URL when visiting /products/18 (no slug) and product has slug data
     $params = $product->showRouteParameters();
-    if (count($params) > 1 && request()->path() === 'products/' . $product->id) {
+    if (isset($params['slug']) && request()->path() === 'products/' . $product->id) {
       return redirect()->route('products.show', $params, 301);
     }
 
@@ -110,6 +122,10 @@ class ProductController extends Controller
 
   public function inquiry(Product $product)
   {
+    $holdStatus = $product->hold_status ? strtolower(trim($product->hold_status)) : '';
+    if (in_array($holdStatus, ['hold', 'on hold'], true)) {
+      abort(404);
+    }
     return view('products.inquiry', [
       'product' => $product
     ]);
