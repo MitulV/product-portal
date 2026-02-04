@@ -21,6 +21,8 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
 
   Route::post('/logout', [\App\Http\Controllers\AdminAuthController::class, 'destroy'])->name('logout');
+  Route::get('/change-password', [\App\Http\Controllers\AdminAuthController::class, 'showChangePassword'])->name('change-password');
+  Route::post('/change-password', [\App\Http\Controllers\AdminAuthController::class, 'updatePassword'])->name('change-password.update');
 
   Route::get('/dashboard', function () {
     $totalProducts = \App\Models\Product::count();
@@ -31,6 +33,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
   Route::post('/products/import', [\App\Http\Controllers\AdminProductController::class, 'import'])->name('products.import');
   Route::get('/products/download-template', [\App\Http\Controllers\AdminProductController::class, 'downloadTemplate'])->name('products.download-template');
+  Route::get('/products/export', [\App\Http\Controllers\AdminProductController::class, 'export'])->name('products.export');
   Route::resource('products', \App\Http\Controllers\AdminProductController::class)->except(['create', 'store']);
 
   Route::get('/gallery', [\App\Http\Controllers\AdminGalleryController::class, 'index'])->name('gallery.index');

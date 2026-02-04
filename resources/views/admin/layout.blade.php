@@ -38,7 +38,15 @@
                 </a>
             </nav>
 
-            <div class="p-4 border-t border-white/10 shrink-0">
+            <div class="p-4 border-t border-white/10 shrink-0 space-y-2">
+                <a href="{{ route('admin.change-password') }}"
+                    class="flex w-full items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors text-sm font-medium">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                    Change Password
+                </a>
                 <form method="POST" action="{{ route('admin.logout') }}">
                     @csrf
                     <button type="submit"

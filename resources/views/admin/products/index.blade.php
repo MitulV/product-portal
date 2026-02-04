@@ -110,6 +110,14 @@
                         <span x-show="processingExcel">Processing...</span>
                     </button>
                 </form>
+                <a href="{{ route('admin.products.export') }}"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export Database
+                </a>
             </div>
         </div>
 
@@ -719,7 +727,8 @@
                                     {{ $product->notes ?? '-' }}</td>
                                 <td class="px-4 py-3 max-w-xs truncate" title="{{ $product->tech_spec ?? '' }}">
                                     {{ $product->tech_spec ?? '-' }}</td>
-                                <td class="px-4 py-3">{{ $product->kw !== null ? (string) (int) round($product->kw, 0) . ' kW' : '-' }}
+                                <td class="px-4 py-3">
+                                    {{ $product->kw !== null ? (string) (int) round($product->kw, 0) . ' kW' : '-' }}
                                 </td>
                             </tr>
                         @endforeach
