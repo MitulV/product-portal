@@ -13,6 +13,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class AdminProductController extends Controller
 {
@@ -645,110 +646,249 @@ class AdminProductController extends Controller
 
   public function export()
   {
-    // Get all products from the database
-    $products = Product::all();
+    // Get all products grouped by product_type
+    $allProducts = Product::all();
 
-    // Define the headers in the same order as the import template
-    $headers = [
-      'Hold',              // 0 - hold_status
-      'Hold Branch',       // 1 - hold_branch
-      'Salesman',          // 2 - salesman
-      'Opportunity Name',  // 3 - opportunity_name
-      'Brand',             // 4 - brand
-      'Model',             // 5 - model_number
-      'Location',          // 6 - location
-      'IPAS/CPQ #',        // 7 - ipas_cpq_number
-      'CPS PO#',           // 8 - cps_po_number
-      'Enclosure',         // 9 - enclosure
-      'Enclosure Type',    // 10 - enclosure_type
-      'Tank',              // 11 - tank
-      'Controller Series', // 12 - controller_series
-      'Breaker(s)',        // 13 - breakers
-      'Notes',             // 14 - notes
-      'Application Group', // 15 - application_group
-      'Engine Model',      // 16 - engine_model
-      'Unit Specification', // 17 - unit_specification
-      'IBC Certification', // 18 - ibc_certification
-      'Exhaust Emissions', // 19 - exhaust_emissions
-      'Temp Rise',         // 20 - temp_rise
-      'Description',       // 21 - description
-      'Fuel Type',         // 22 - fuel_type
-      'Voltage',           // 23 - voltage
-      'Phase',             // 24 - phase
-      'Serial Number',     // 25 - serial_number
-      'Stock ID',          // 26 - unit_id
-      'Power',             // 27 - power
-      'Engine Speed',      // 28 - engine_speed
-      'Radiator Design Temp', // 29 - radiator_design_temp
-      'Frequency',         // 30 - frequency
-      'Full Load Amps',    // 31 - full_load_amps
-      'Tech Spec',         // 32 - tech_spec
-      'Date Hold Added',   // 33 - date_hold_added
-      'Hold Expiration',   // 34 - hold_expiration_date
-      'Est Completion Date', // 35 - est_completion_date
-      'Ship Date',         // 36 - ship_date
-      'Total Cost',        // 37 - total_cost
-      'Retail Cost',       // 38 - retail_cost
-      'Tariff',            // 39 - tariff_cost
-      'Sales Order #',     // 40 - sales_order_number
+    // Define sheet configurations matching the import template
+    $sheetConfigs = [
+      'Generators' => [
+        'headers' => [
+          'Hold',
+          'Hold Branch',
+          'Salesman',
+          'Opportunity Name',
+          'Brand',
+          'Model',
+          'Location',
+          'IPAS/CPQ #',
+          'CPS PO#',
+          'Enclosure',
+          'Enclosure Type',
+          'Tank',
+          'Controller Series',
+          'Breaker(s)',
+          'Notes',
+          'Application Group',
+          'Engine Model',
+          'Unit Specification',
+          'IBC Certification',
+          'Exhaust Emissions',
+          'Temp Rise',
+          'Description',
+          'Fuel Type',
+          'Voltage',
+          'Phase',
+          'Serial Number',
+          'Stock ID',
+          'Power',
+          'Engine Speed',
+          'Radiator Design Temp',
+          'Frequency',
+          'Full Load Amps',
+          'Tech Spec',
+          'Date Hold Added',
+          'Hold Expiration',
+          'Est Completion Date',
+          'Ship Date',
+          'Total Cost',
+          'Retail Cost',
+          'Tariff',
+          'Sales Order #',
+          'kW'
+        ],
+        'fields' => [
+          'hold_status',
+          'hold_branch',
+          'salesman',
+          'opportunity_name',
+          'brand',
+          'model_number',
+          'location',
+          'ipas_cpq_number',
+          'cps_po_number',
+          'enclosure',
+          'enclosure_type',
+          'tank',
+          'controller_series',
+          'breakers',
+          'notes',
+          'application_group',
+          'engine_model',
+          'unit_specification',
+          'ibc_certification',
+          'exhaust_emissions',
+          'temp_rise',
+          'description',
+          'fuel_type',
+          'voltage',
+          'phase',
+          'serial_number',
+          'unit_id',
+          'power',
+          'engine_speed',
+          'radiator_design_temp',
+          'frequency',
+          'full_load_amps',
+          'tech_spec',
+          'date_hold_added',
+          'hold_expiration_date',
+          'est_completion_date',
+          'ship_date',
+          'total_cost',
+          'retail_cost',
+          'tariff_cost',
+          'sales_order_number',
+          'kw'
+        ],
+      ],
+      'Switch' => [
+        'headers' => [
+          'Hold',
+          'Hold Branch',
+          'Salesman',
+          'Hold Expiration',
+          'Location',
+          'Brand',
+          'Transition Type',
+          'Enclosure Type',
+          'Bypass/Isolation',
+          'Service Entrance Rated',
+          'Contactor Type',
+          'Controller Model',
+          'Communications Type',
+          'Accessories',
+          'Catalog Number',
+          'Serial Number',
+          'Quote Number',
+          'Number of Poles',
+          'Description',
+          'Amperage',
+          'Voltage',
+          'Phase',
+          'Stock ID',
+          'Date Hold Added',
+          'Est Completion Date',
+          'Retail Cost',
+          'Total Cost'
+        ],
+        'fields' => [
+          'hold_status',
+          'hold_branch',
+          'salesman',
+          'hold_expiration_date',
+          'location',
+          'brand',
+          'transition_type',
+          'enclosure_type',
+          'bypass_isolation',
+          'service_entrance_rated',
+          'contactor_type',
+          'controller_model',
+          'communications_type',
+          'accessories',
+          'catalog_number',
+          'serial_number',
+          'quote_number',
+          'number_of_poles',
+          'description',
+          'amperage',
+          'voltage',
+          'phase',
+          'unit_id',
+          'date_hold_added',
+          'est_completion_date',
+          'retail_cost',
+          'total_cost'
+        ],
+      ],
+      'Docking Stations' => [
+        'headers' => [
+          'Hold',
+          'Hold Branch',
+          'Salesman',
+          'Hold Expiration',
+          'Location',
+          'Brand',
+          'Enclosure Type',
+          'Contactor Type',
+          'Accessories',
+          'Catalog Number',
+          'Serial Number',
+          'Quote Number',
+          'Circuit Breaker Type',
+          'Description',
+          'Amperage',
+          'Voltage',
+          'Phase',
+          'Stock ID',
+          'Date Hold Added',
+          'Est Completion Date',
+          'Retail Cost',
+          'Total Cost'
+        ],
+        'fields' => [
+          'hold_status',
+          'hold_branch',
+          'salesman',
+          'hold_expiration_date',
+          'location',
+          'brand',
+          'enclosure_type',
+          'contactor_type',
+          'accessories',
+          'catalog_number',
+          'serial_number',
+          'quote_number',
+          'circuit_breaker_type',
+          'description',
+          'amperage',
+          'voltage',
+          'phase',
+          'unit_id',
+          'date_hold_added',
+          'est_completion_date',
+          'retail_cost',
+          'total_cost'
+        ],
+      ],
+      'Other' => [
+        'headers' => [
+          'Hold',
+          'Hold Branch',
+          'Salesman',
+          'Location',
+          'Brand',
+          'Serial Number',
+          'Description',
+          'Stock ID',
+          'Hold Expiration',
+          'Date Hold Added',
+          'Retail Cost',
+          'Total Cost',
+          'Title'
+        ],
+        'fields' => [
+          'hold_status',
+          'hold_branch',
+          'salesman',
+          'location',
+          'brand',
+          'serial_number',
+          'description',
+          'unit_id',
+          'hold_expiration_date',
+          'date_hold_added',
+          'retail_cost',
+          'total_cost',
+          'title'
+        ],
+      ],
     ];
 
-    // Map database fields to column indices
-    $fieldMap = [
-      0 => 'hold_status',
-      1 => 'hold_branch',
-      2 => 'salesman',
-      3 => 'opportunity_name',
-      4 => 'brand',
-      5 => 'model_number',
-      6 => 'location',
-      7 => 'ipas_cpq_number',
-      8 => 'cps_po_number',
-      9 => 'enclosure',
-      10 => 'enclosure_type',
-      11 => 'tank',
-      12 => 'controller_series',
-      13 => 'breakers',
-      14 => 'notes',
-      15 => 'application_group',
-      16 => 'engine_model',
-      17 => 'unit_specification',
-      18 => 'ibc_certification',
-      19 => 'exhaust_emissions',
-      20 => 'temp_rise',
-      21 => 'description',
-      22 => 'fuel_type',
-      23 => 'voltage',
-      24 => 'phase',
-      25 => 'serial_number',
-      26 => 'unit_id',
-      27 => 'power',
-      28 => 'engine_speed',
-      29 => 'radiator_design_temp',
-      30 => 'frequency',
-      31 => 'full_load_amps',
-      32 => 'tech_spec',
-      33 => 'date_hold_added',
-      34 => 'hold_expiration_date',
-      35 => 'est_completion_date',
-      36 => 'ship_date',
-      37 => 'total_cost',
-      38 => 'retail_cost',
-      39 => 'tariff_cost',
-      40 => 'sales_order_number',
-    ];
+    // Date fields for formatting
+    $dateFields = ['date_hold_added', 'hold_expiration_date', 'est_completion_date', 'ship_date'];
 
-    // Create a new spreadsheet
-    $spreadsheet = new Spreadsheet();
-    $sheet = $spreadsheet->getActiveSheet();
-    $sheet->setTitle('Generators');
-
-    // Write headers to row 1
-    foreach ($headers as $colIndex => $header) {
-      $sheet->setCellValueByColumnAndRow($colIndex + 1, 1, $header);
-    }
-
-    // Style the header row
+    // Header style
     $headerStyle = [
       'font' => ['bold' => true],
       'fill' => [
@@ -756,38 +896,59 @@ class AdminProductController extends Controller
         'startColor' => ['rgb' => 'E2E8F0'],
       ],
     ];
-    $lastCol = Coordinate::stringFromColumnIndex(count($headers));
-    $sheet->getStyle("A1:{$lastCol}1")->applyFromArray($headerStyle);
 
-    // Write product data starting from row 2
-    $rowNum = 2;
-    foreach ($products as $product) {
-      foreach ($fieldMap as $colIndex => $field) {
-        $value = $product->{$field};
+    // Create spreadsheet
+    $spreadsheet = new Spreadsheet();
+    $spreadsheet->removeSheetByIndex(0); // Remove default sheet
 
-        // Format dates as strings
-        if (in_array($field, ['date_hold_added', 'hold_expiration_date', 'est_completion_date', 'ship_date'])) {
-          if ($value) {
+    $sheetIndex = 0;
+    foreach ($sheetConfigs as $sheetName => $config) {
+      // Create new sheet
+      $sheet = new Worksheet($spreadsheet, $sheetName);
+      $spreadsheet->addSheet($sheet, $sheetIndex);
+      $sheetIndex++;
+
+      // Write headers
+      foreach ($config['headers'] as $colIndex => $header) {
+        $sheet->setCellValueByColumnAndRow($colIndex + 1, 1, $header);
+      }
+
+      // Style headers
+      $lastCol = Coordinate::stringFromColumnIndex(count($config['headers']));
+      $sheet->getStyle("A1:{$lastCol}1")->applyFromArray($headerStyle);
+
+      // Filter products for this sheet
+      $products = $allProducts->filter(function ($product) use ($sheetName) {
+        return $product->product_type === $sheetName;
+      });
+
+      // Write product data
+      $rowNum = 2;
+      foreach ($products as $product) {
+        foreach ($config['fields'] as $colIndex => $field) {
+          $value = $product->{$field};
+
+          // Format dates
+          if (in_array($field, $dateFields) && $value) {
             $value = \Carbon\Carbon::parse($value)->format('Y-m-d');
           }
+
+          $sheet->setCellValueByColumnAndRow($colIndex + 1, $rowNum, $value);
         }
-
-        $sheet->setCellValueByColumnAndRow($colIndex + 1, $rowNum, $value);
+        $rowNum++;
       }
-      $rowNum++;
-    }
 
-    // Auto-size columns for better readability
-    foreach (range(1, count($headers)) as $colIndex) {
-      $colLetter = Coordinate::stringFromColumnIndex($colIndex);
-      $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+      // Auto-size columns
+      foreach (range(1, count($config['headers'])) as $colIndex) {
+        $colLetter = Coordinate::stringFromColumnIndex($colIndex);
+        $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+      }
     }
 
     // Generate file and return as download
     $writer = new Xlsx($spreadsheet);
     $filename = 'products-export-' . date('Y-m-d-His') . '.xlsx';
 
-    // Create temp file
     $tempFile = tempnam(sys_get_temp_dir(), 'export');
     $writer->save($tempFile);
 
