@@ -108,13 +108,13 @@ class Product extends Model
     }
 
     if ($this->product_type === 'Switch') {
-      $amp = $this->amperage !== null ? (string) $this->amperage : '';
-      return $amp !== '' ? "{$brand} - {$amp} - Transfer Switch" : "{$brand} - Transfer Switch";
+      $amp = $this->amperage !== null ? (string) $this->amperage . 'A' : '';
+      return $amp !== '' ? "{$brand} - {$amp} Transfer Switch" : "{$brand} - Transfer Switch";
     }
 
     if ($this->product_type === 'Docking Stations') {
-      $amp = $this->amperage !== null ? (string) $this->amperage : '';
-      return $amp !== '' ? "{$brand} - {$amp} - Docking Station" : "{$brand} - Docking Station";
+      $amp = $this->amperage !== null ? (string) $this->amperage . 'A' : '';
+      return $amp !== '' ? "{$brand} - {$amp} Docking Station" : "{$brand} - Docking Station";
     }
 
     if ($this->product_type === 'Other') {

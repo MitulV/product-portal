@@ -156,7 +156,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach ($products as $product)
                         <div
-                            class="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                            class="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
                             @if ($product->thumbnail && $product->thumbnail->file_url)
                                 <a href="{{ route('products.show', $product->showRouteParameters()) }}"
                                     class="block aspect-[16/10] bg-slate-100 overflow-hidden">
@@ -166,7 +166,7 @@
                                         loading="lazy" />
                                 </a>
                             @endif
-                            <div class="p-6">
+                            <div class="p-6 flex flex-col flex-1">
                                 <div class="flex items-start justify-between mb-4">
                                     <div class="flex-1 min-w-0">
                                         <h3 class="text-lg font-bold text-slate-900 mb-1">
@@ -181,7 +181,7 @@
                                     @endif
                                 </div>
 
-                                <div class="space-y-2 mb-4">
+                                <div class="space-y-2 mb-4 flex-1">
                                     @if ($product->isPublicField('model_number') && $product->model_number)
                                         <div class="flex items-center text-sm text-slate-600">
                                             <span class="font-medium w-24">Model:</span>
@@ -209,7 +209,7 @@
                                 </div>
 
                                 <a href="{{ route('products.show', $product->showRouteParameters()) }}"
-                                    class="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+                                    class="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition mt-auto">
                                     View Details
                                 </a>
                             </div>

@@ -13,11 +13,11 @@ class ProductController extends Controller
   {
     $baseQuery = Product::query();
 
-    // Only show available products (exclude products on hold – e.g. "Hold", "On hold")
+    // Only show available products (exclude "Hold", "On hold", and "Sold" statuses)
     $baseQuery->where(function ($q) {
       $q->whereNull('hold_status')
         ->orWhere('hold_status', '')
-        ->orWhereRaw('LOWER(TRIM(hold_status)) NOT IN (?, ?)', ['hold', 'on hold']);
+        ->orWhereRaw('LOWER(TRIM(hold_status)) NOT IN (?, ?, ?)', ['hold', 'on hold', 'sold']);
     });
 
     $query = clone $baseQuery;
@@ -74,7 +74,7 @@ class ProductController extends Controller
     $baseForFilters = Product::query()->where(function ($q) {
       $q->whereNull('hold_status')
         ->orWhere('hold_status', '')
-        ->orWhereRaw('LOWER(TRIM(hold_status)) NOT IN (?, ?)', ['hold', 'on hold']);
+        ->orWhereRaw('LOWER(TRIM(hold_status)) NOT IN (?, ?, ?)', ['hold', 'on hold', 'sold']);
     });
     $availableVoltages = (clone $baseForFilters)->whereNotNull('voltage')->where('voltage', '!=', '')
       ->select('voltage')->distinct()->orderBy('voltage')->pluck('voltage')->filter()->values()->toArray();
@@ -101,9 +101,9 @@ class ProductController extends Controller
 
   public function show(Product $product)
   {
-    // Hide on-hold units from client: treat as not found
+    // Hide on-hold and sold units from client: treat as not found
     $holdStatus = $product->hold_status ? strtolower(trim($product->hold_status)) : '';
-    if (in_array($holdStatus, ['hold', 'on hold'], true)) {
+    if (in_array($holdStatus, ['hold', 'on hold', 'sold'], true)) {
       abort(404);
     }
 
@@ -123,7 +123,7 @@ class ProductController extends Controller
   public function inquiry(Product $product)
   {
     $holdStatus = $product->hold_status ? strtolower(trim($product->hold_status)) : '';
-    if (in_array($holdStatus, ['hold', 'on hold'], true)) {
+    if (in_array($holdStatus, ['hold', 'on hold', 'sold'], true)) {
       abort(404);
     }
     return view('products.inquiry', [
